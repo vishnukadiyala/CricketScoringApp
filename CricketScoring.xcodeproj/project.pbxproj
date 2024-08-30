@@ -1,0 +1,587 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		27E9551B2C825C4D00FD463D /* CricketScoringApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E9551A2C825C4D00FD463D /* CricketScoringApp.swift */; };
+		27E9551D2C825C4D00FD463D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E9551C2C825C4D00FD463D /* ContentView.swift */; };
+		27E9551F2C825C5000FD463D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 27E9551E2C825C5000FD463D /* Assets.xcassets */; };
+		27E955222C825C5000FD463D /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 27E955212C825C5000FD463D /* Preview Assets.xcassets */; };
+		27E9552C2C825C5000FD463D /* CricketScoringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E9552B2C825C5000FD463D /* CricketScoringTests.swift */; };
+		27E955362C825C5000FD463D /* CricketScoringUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E955352C825C5000FD463D /* CricketScoringUITests.swift */; };
+		27E955382C825C5000FD463D /* CricketScoringUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E955372C825C5000FD463D /* CricketScoringUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		27E955282C825C5000FD463D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 27E9550F2C825C4D00FD463D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 27E955162C825C4D00FD463D;
+			remoteInfo = CricketScoring;
+		};
+		27E955322C825C5000FD463D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 27E9550F2C825C4D00FD463D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 27E955162C825C4D00FD463D;
+			remoteInfo = CricketScoring;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		27E955172C825C4D00FD463D /* CricketScoring.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CricketScoring.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		27E9551A2C825C4D00FD463D /* CricketScoringApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CricketScoringApp.swift; sourceTree = "<group>"; };
+		27E9551C2C825C4D00FD463D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		27E9551E2C825C5000FD463D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		27E955212C825C5000FD463D /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		27E955272C825C5000FD463D /* CricketScoringTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CricketScoringTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		27E9552B2C825C5000FD463D /* CricketScoringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CricketScoringTests.swift; sourceTree = "<group>"; };
+		27E955312C825C5000FD463D /* CricketScoringUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CricketScoringUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		27E955352C825C5000FD463D /* CricketScoringUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CricketScoringUITests.swift; sourceTree = "<group>"; };
+		27E955372C825C5000FD463D /* CricketScoringUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CricketScoringUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		27E955142C825C4D00FD463D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E955242C825C5000FD463D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E9552E2C825C5000FD463D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		27E9550E2C825C4D00FD463D = {
+			isa = PBXGroup;
+			children = (
+				27E955192C825C4D00FD463D /* CricketScoring */,
+				27E9552A2C825C5000FD463D /* CricketScoringTests */,
+				27E955342C825C5000FD463D /* CricketScoringUITests */,
+				27E955182C825C4D00FD463D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		27E955182C825C4D00FD463D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				27E955172C825C4D00FD463D /* CricketScoring.app */,
+				27E955272C825C5000FD463D /* CricketScoringTests.xctest */,
+				27E955312C825C5000FD463D /* CricketScoringUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		27E955192C825C4D00FD463D /* CricketScoring */ = {
+			isa = PBXGroup;
+			children = (
+				27E9551A2C825C4D00FD463D /* CricketScoringApp.swift */,
+				27E9551C2C825C4D00FD463D /* ContentView.swift */,
+				27E9551E2C825C5000FD463D /* Assets.xcassets */,
+				27E955202C825C5000FD463D /* Preview Content */,
+			);
+			path = CricketScoring;
+			sourceTree = "<group>";
+		};
+		27E955202C825C5000FD463D /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				27E955212C825C5000FD463D /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		27E9552A2C825C5000FD463D /* CricketScoringTests */ = {
+			isa = PBXGroup;
+			children = (
+				27E9552B2C825C5000FD463D /* CricketScoringTests.swift */,
+			);
+			path = CricketScoringTests;
+			sourceTree = "<group>";
+		};
+		27E955342C825C5000FD463D /* CricketScoringUITests */ = {
+			isa = PBXGroup;
+			children = (
+				27E955352C825C5000FD463D /* CricketScoringUITests.swift */,
+				27E955372C825C5000FD463D /* CricketScoringUITestsLaunchTests.swift */,
+			);
+			path = CricketScoringUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		27E955162C825C4D00FD463D /* CricketScoring */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27E9553B2C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoring" */;
+			buildPhases = (
+				27E955132C825C4D00FD463D /* Sources */,
+				27E955142C825C4D00FD463D /* Frameworks */,
+				27E955152C825C4D00FD463D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CricketScoring;
+			productName = CricketScoring;
+			productReference = 27E955172C825C4D00FD463D /* CricketScoring.app */;
+			productType = "com.apple.product-type.application";
+		};
+		27E955262C825C5000FD463D /* CricketScoringTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27E9553E2C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoringTests" */;
+			buildPhases = (
+				27E955232C825C5000FD463D /* Sources */,
+				27E955242C825C5000FD463D /* Frameworks */,
+				27E955252C825C5000FD463D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				27E955292C825C5000FD463D /* PBXTargetDependency */,
+			);
+			name = CricketScoringTests;
+			productName = CricketScoringTests;
+			productReference = 27E955272C825C5000FD463D /* CricketScoringTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		27E955302C825C5000FD463D /* CricketScoringUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27E955412C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoringUITests" */;
+			buildPhases = (
+				27E9552D2C825C5000FD463D /* Sources */,
+				27E9552E2C825C5000FD463D /* Frameworks */,
+				27E9552F2C825C5000FD463D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				27E955332C825C5000FD463D /* PBXTargetDependency */,
+			);
+			name = CricketScoringUITests;
+			productName = CricketScoringUITests;
+			productReference = 27E955312C825C5000FD463D /* CricketScoringUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		27E9550F2C825C4D00FD463D /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					27E955162C825C4D00FD463D = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					27E955262C825C5000FD463D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 27E955162C825C4D00FD463D;
+					};
+					27E955302C825C5000FD463D = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 27E955162C825C4D00FD463D;
+					};
+				};
+			};
+			buildConfigurationList = 27E955122C825C4D00FD463D /* Build configuration list for PBXProject "CricketScoring" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 27E9550E2C825C4D00FD463D;
+			productRefGroup = 27E955182C825C4D00FD463D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				27E955162C825C4D00FD463D /* CricketScoring */,
+				27E955262C825C5000FD463D /* CricketScoringTests */,
+				27E955302C825C5000FD463D /* CricketScoringUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		27E955152C825C4D00FD463D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27E955222C825C5000FD463D /* Preview Assets.xcassets in Resources */,
+				27E9551F2C825C5000FD463D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E955252C825C5000FD463D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E9552F2C825C5000FD463D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		27E955132C825C4D00FD463D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27E9551D2C825C4D00FD463D /* ContentView.swift in Sources */,
+				27E9551B2C825C4D00FD463D /* CricketScoringApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E955232C825C5000FD463D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27E9552C2C825C5000FD463D /* CricketScoringTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		27E9552D2C825C5000FD463D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				27E955382C825C5000FD463D /* CricketScoringUITestsLaunchTests.swift in Sources */,
+				27E955362C825C5000FD463D /* CricketScoringUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		27E955292C825C5000FD463D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 27E955162C825C4D00FD463D /* CricketScoring */;
+			targetProxy = 27E955282C825C5000FD463D /* PBXContainerItemProxy */;
+		};
+		27E955332C825C5000FD463D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 27E955162C825C4D00FD463D /* CricketScoring */;
+			targetProxy = 27E955322C825C5000FD463D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		27E955392C825C5000FD463D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		27E9553A2C825C5000FD463D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		27E9553C2C825C5000FD463D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CricketScoring/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoring;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		27E9553D2C825C5000FD463D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"CricketScoring/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoring;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		27E9553F2C825C5000FD463D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoringTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CricketScoring.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CricketScoring";
+			};
+			name = Debug;
+		};
+		27E955402C825C5000FD463D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoringTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CricketScoring.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CricketScoring";
+			};
+			name = Release;
+		};
+		27E955422C825C5000FD463D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoringUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CricketScoring;
+			};
+			name = Debug;
+		};
+		27E955432C825C5000FD463D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = kadiyala.net.CricketScoringUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = CricketScoring;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		27E955122C825C4D00FD463D /* Build configuration list for PBXProject "CricketScoring" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				27E955392C825C5000FD463D /* Debug */,
+				27E9553A2C825C5000FD463D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		27E9553B2C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoring" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				27E9553C2C825C5000FD463D /* Debug */,
+				27E9553D2C825C5000FD463D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		27E9553E2C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoringTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				27E9553F2C825C5000FD463D /* Debug */,
+				27E955402C825C5000FD463D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		27E955412C825C5000FD463D /* Build configuration list for PBXNativeTarget "CricketScoringUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				27E955422C825C5000FD463D /* Debug */,
+				27E955432C825C5000FD463D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 27E9550F2C825C4D00FD463D /* Project object */;
+}
