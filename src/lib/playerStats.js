@@ -50,6 +50,12 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
 
           p.bowling.innings++
           p.bowling.overs += bowl.overs
+          p.bowling.ballsInOver = (p.bowling.ballsInOver || 0) + (bowl.ballsInOver || 0)
+          // Carry over extra balls into complete overs
+          if (p.bowling.ballsInOver >= 6) {
+            p.bowling.overs += Math.floor(p.bowling.ballsInOver / 6)
+            p.bowling.ballsInOver = p.bowling.ballsInOver % 6
+          }
           p.bowling.maidens += bowl.maidens
           p.bowling.runs += bowl.runs
           p.bowling.wickets += bowl.wickets
@@ -74,7 +80,8 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
     p.batting.average = dismissals > 0 ? (p.batting.runs / dismissals) : p.batting.runs
     p.batting.sr = p.batting.balls > 0 ? ((p.batting.runs / p.batting.balls) * 100) : 0
 
-    p.bowling.economy = p.bowling.overs > 0 ? (p.bowling.runs / p.bowling.overs) : 0
+    const bowlingBalls = p.bowling.overs * 6 + (p.bowling.ballsInOver || 0)
+    p.bowling.economy = bowlingBalls > 0 ? (p.bowling.runs / (bowlingBalls / 6)) : 0
 
     return p
   })

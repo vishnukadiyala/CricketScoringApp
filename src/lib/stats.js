@@ -1,6 +1,7 @@
 import { BALLS_PER_OVER, MAX_WICKETS } from './constants'
 import { loadMatch } from './storage'
 import { getActivePlayerNames, countActivePlayers } from './squadUtils'
+import { ballsToDecimalOvers } from './overs'
 
 // ─── Data Loading ───────────────────────────────────────────────
 
@@ -436,7 +437,7 @@ export function computeBowlingLeaderboard(matchData) {
   })
 
   return Object.values(playerMap).map(p => {
-    p.economy = p.overs > 0 ? p.runs / p.overs : 0
+    p.economy = p.balls > 0 ? p.runs / ballsToDecimalOvers(p.balls) : 0
     p.bowlingAverage = p.wickets > 0 ? p.runs / p.wickets : Infinity
     p.bowlingStrikeRate = p.wickets > 0 ? p.balls / p.wickets : Infinity
     return p
@@ -457,8 +458,9 @@ export function getPurpleCapList(bowlingStats) {
  * Best economy (min 2 overs).
  */
 export function getBestEconomy(bowlingStats, minOvers = 2) {
+  const minBalls = minOvers * BALLS_PER_OVER
   return [...bowlingStats]
-    .filter(p => p.overs >= minOvers)
+    .filter(p => p.balls >= minBalls)
     .sort((a, b) => a.economy - b.economy)
 }
 

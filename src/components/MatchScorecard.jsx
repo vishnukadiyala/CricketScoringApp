@@ -1,4 +1,6 @@
 import { getBallClass } from '../lib/ballDisplay'
+import { formatBowlerOvers, computeEconomy, ballsToDecimalOvers } from '../lib/overs'
+import { BALLS_PER_OVER } from '../lib/constants'
 
 export default function MatchScorecard({ matchState }) {
   if (!matchState) return null
@@ -92,16 +94,19 @@ export default function MatchScorecard({ matchState }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {(inn.bowlers || []).map((bowl, bIdx) => (
-                    <tr key={bIdx}>
-                      <td className="col-name">{bowl.name}</td>
-                      <td className="col-stat">{bowl.overs}</td>
-                      <td className="col-stat">{bowl.maidens}</td>
-                      <td className="col-stat">{bowl.runs}</td>
-                      <td className="col-stat">{bowl.wickets}</td>
-                      <td className="col-stat">{bowl.overs > 0 ? (bowl.runs / bowl.overs).toFixed(1) : '0.0'}</td>
-                    </tr>
-                  ))}
+                  {(inn.bowlers || []).map((bowl, bIdx) => {
+                    const totalBalls = bowl.overs * BALLS_PER_OVER + (bowl.ballsInOver || 0)
+                    return (
+                      <tr key={bIdx}>
+                        <td className="col-name">{bowl.name}</td>
+                        <td className="col-stat">{formatBowlerOvers(bowl.overs, bowl.ballsInOver)}</td>
+                        <td className="col-stat">{bowl.maidens}</td>
+                        <td className="col-stat">{bowl.runs}</td>
+                        <td className="col-stat">{bowl.wickets}</td>
+                        <td className="col-stat">{totalBalls > 0 ? computeEconomy(bowl.runs, totalBalls).toFixed(1) : '0.0'}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

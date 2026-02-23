@@ -1,3 +1,5 @@
+import { formatBowlerOvers } from './overs'
+
 /**
  * Generate a shareable text match report from match state.
  */
@@ -54,7 +56,7 @@ export function generateMatchReport(matchState) {
 
     const topB = topBowler(inn)
     if (topB && topB.wickets > 0) {
-      lines.push(`  🎯 ${topB.name}: ${topB.wickets}/${topB.runs} (${topB.overs} ov)`)
+      lines.push(`  🎯 ${topB.name}: ${topB.wickets}/${topB.runs} (${formatBowlerOvers(topB.overs, topB.ballsInOver)} ov)`)
     }
 
     lines.push('')
