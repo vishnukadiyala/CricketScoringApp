@@ -132,6 +132,10 @@ export default function AdminPage() {
   }
 
   const handleReset = () => {
+    // Clear match data from Firebase
+    matches.forEach(m => {
+      set(ref(db, `matches/${m.id}`), null)
+    })
     dispatch({ type: 'RESET_TOURNAMENT' })
     clearTournament()
     setShowResetConfirm(false)

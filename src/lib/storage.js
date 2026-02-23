@@ -22,6 +22,16 @@ export function saveTournament(state) {
 
 export function clearTournament() {
   localStorage.removeItem(TOURNAMENT_KEY)
+  // Also clear all match data
+  const keysToRemove = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith(MATCH_PREFIX)) {
+      keysToRemove.push(key)
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k))
+  localStorage.removeItem(LEGACY_KEY)
 }
 
 export function loadMatch(matchId) {
