@@ -562,6 +562,155 @@ describe('Follow-On', () => {
     expect(state.inningsOrder[3]).toBe(orderBefore[2])
     expect(state.phase).toBe('squad-rotation')
   })
+
+  it('should award innings victory when follow-on team still trails after 3rd innings', () => {
+    // Simulate: Team A scores big, Team B scores low (follow-on),
+    // Team B bats again but combined total < Team A
+    let state = setupMatch()
+    // Inn 0: Team A scores 4 runs then all out
+    state = scoreBall(state, { runs: 4 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('innings-break')
+    expect(state.cumulativeScores.team1).toBe(4) // Team A = 4
+
+    // Inn 1: Team B scores 1 run then all out (1 < 4 * 0.5 = 2 → follow-on)
+    state = matchReducer(state, { type: 'START_NEXT_INNINGS' })
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 1 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('follow-on-decision')
+    expect(state.cumulativeScores.team2).toBe(1) // Team B = 1
+
+    // Enforce follow-on
+    state = matchReducer(state, { type: 'DECIDE_FOLLOW_ON', enforce: true })
+    expect(state.followOnEnforced).toBe(true)
+
+    // Skip squad rotation
+    state = matchReducer(state, { type: 'FINISH_SQUAD_ROTATION' })
+
+    // Inn 2: Team B bats again (follow-on), scores 2 runs then all out
+    // Team B combined: 1 + 2 = 3, Team A: 4 → innings victory
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 2 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    expect(state.phase).toBe('match-over')
+    expect(state.result).toBe('Team A won by an innings and 1 run')
+  })
+
+  it('should proceed to 4th innings when follow-on team surpasses enforcing team', () => {
+    let state = setupMatch()
+    // Inn 0: Team A scores 4 runs then all out
+    state = scoreBall(state, { runs: 4 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    // Inn 1: Team B scores 1 run then all out → follow-on
+    state = matchReducer(state, { type: 'START_NEXT_INNINGS' })
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 1 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('follow-on-decision')
+
+    // Enforce follow-on
+    state = matchReducer(state, { type: 'DECIDE_FOLLOW_ON', enforce: true })
+    state = matchReducer(state, { type: 'FINISH_SQUAD_ROTATION' })
+
+    // Inn 2: Team B scores 4 runs (combined 1+4=5 > Team A's 4) → no innings victory
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 4 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    // Should go to innings-break for 4th innings, NOT match-over
+    expect(state.phase).toBe('innings-break')
+    expect(state.result).toBeFalsy()
+  })
+
+  it('should proceed to 4th innings when follow-on team exactly ties', () => {
+    let state = setupMatch()
+    // Inn 0: Team A scores 4 runs then all out
+    state = scoreBall(state, { runs: 4 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    // Inn 1: Team B scores 1 run then all out → follow-on
+    state = matchReducer(state, { type: 'START_NEXT_INNINGS' })
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 1 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('follow-on-decision')
+
+    // Enforce follow-on
+    state = matchReducer(state, { type: 'DECIDE_FOLLOW_ON', enforce: true })
+    state = matchReducer(state, { type: 'FINISH_SQUAD_ROTATION' })
+
+    // Inn 2: Team B scores 3 runs (combined 1+3=4 = Team A's 4) → exact tie
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    state = scoreBall(state, { runs: 3 })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    // Exact tie → 4th innings still happens (enforcing team needs 1 run)
+    expect(state.phase).toBe('innings-break')
+    expect(state.result).toBeFalsy()
+  })
+
+  it('should not check innings victory when follow-on is NOT enforced', () => {
+    let state = setupMatch()
+    // Complete 3 innings without follow-on
+    // Inn 0: all out with 0 runs
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('innings-break')
+
+    // Inn 1: all out with 0 runs (0 is NOT < 0 * 0.5, so no follow-on)
+    state = matchReducer(state, { type: 'START_NEXT_INNINGS' })
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `B${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('squad-rotation')
+
+    // Skip squad rotation
+    state = matchReducer(state, { type: 'FINISH_SQUAD_ROTATION' })
+
+    // Inn 2: all out with 0 runs — normal match, always goes to innings-break
+    state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'A1', batsman2: 'A2', bowler: 'B1' })
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+
+    // Without follow-on, should always go to innings-break
+    expect(state.phase).toBe('innings-break')
+  })
 })
 
 describe('Squad Rotation', () => {

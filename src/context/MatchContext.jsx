@@ -384,8 +384,30 @@ export function matchReducer(state, action) {
             newPhase = 'squad-rotation'
           }
         } else if (state.currentInnings === 2) {
-          // After innings 2 → innings-break
-          newPhase = 'innings-break'
+          // After innings 2 → check for innings victory (follow-on only)
+          if (state.followOnEnforced) {
+            // The follow-on team has now batted twice (innings 1 + 2).
+            // The enforcing team batted once (innings 0).
+            // If follow-on team's cumulative is STILL less than enforcing team's,
+            // it's an innings victory — no 4th innings needed.
+            const enforcingTeam = newInnings[0].battingTeam
+            const enforcingKey = getTeamKey(state, enforcingTeam)
+            const followOnKey = enforcingKey === 'team1' ? 'team2' : 'team1'
+            const enforcingTotal = newCumulativeScores[enforcingKey]
+            const followOnTotal = newCumulativeScores[followOnKey]
+
+            if (followOnTotal < enforcingTotal) {
+              // Innings victory — follow-on team couldn't surpass enforcing team
+              const margin = enforcingTotal - followOnTotal
+              result = `${enforcingTeam} won by an innings and ${margin} run${margin !== 1 ? 's' : ''}`
+              newPhase = 'match-over'
+            } else {
+              // Follow-on team matched or surpassed → 4th innings needed
+              newPhase = 'innings-break'
+            }
+          } else {
+            newPhase = 'innings-break'
+          }
         } else if (state.currentInnings === 3) {
           // After innings 3 → compare cumulative totals
           const team1Total = newCumulativeScores.team1

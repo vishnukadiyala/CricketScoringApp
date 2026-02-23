@@ -323,16 +323,14 @@ describe('Full E2E Tournament Simulation', () => {
     state = matchReducer(state, { type: 'FINISH_SQUAD_ROTATION' })
 
     // Innings 3: Beta bats again (follow-on enforced)
+    // Beta scores 1/ball = 72 runs. Combined: 0 + 72 = 72, Alpha: 144
+    // Beta still trails → innings victory for Alpha, no 4th innings
     state = matchReducer(state, { type: 'SET_OPENERS', batsman1: xi2[0], batsman2: xi2[1], bowler: xi1[0] })
     state = scoreInnings(state, 1, bowlers2)
-    expect(state.phase).toBe('innings-break')
-
-    // Innings 4: Alpha bats again
-    state = startNextInnings(state, xi1[0], xi1[1], xi2[0])
-    state = scoreInnings(state, 1, bowlers1)
 
     expect(state.phase).toBe('match-over')
     expect(state.followOnEnforced).toBe(true)
+    expect(state.result).toContain('won by an innings and')
   })
 
   it('should handle tied match leading to super over', () => {
