@@ -14,6 +14,9 @@ export default function NavBar() {
       <NavLink to="/teams" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         Teams
       </NavLink>
+      <NavLink to="/stats" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
+        Stats
+      </NavLink>
       <NavLink to="/admin" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         Admin
       </NavLink>

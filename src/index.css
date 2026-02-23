@@ -2154,6 +2154,325 @@ button:focus-visible {
   margin-top: 4px;
 }
 
+/* ===== STATS PAGE ===== */
+
+/* Tab bar */
+.stats-tabs {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 2px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.stats-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.stats-tab:hover {
+  color: var(--text);
+  background: var(--surface-light);
+}
+
+.stats-tab.active {
+  color: var(--text);
+  background: var(--primary);
+}
+
+/* Sub-tab chips */
+.stats-sub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* Filters */
+.stats-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-filter-select {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* Rank highlights */
+.rank-gold td:first-child {
+  border-left: 3px solid #fbbf24;
+}
+
+.rank-silver td:first-child {
+  border-left: 3px solid #9ca3af;
+}
+
+.rank-bronze td:first-child {
+  border-left: 3px solid #d97706;
+}
+
+/* Stat highlight */
+.stat-highlight {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Player name link */
+.player-link {
+  cursor: pointer;
+  color: var(--text);
+  transition: color 0.15s;
+}
+
+.player-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Player team badge */
+.player-team-badge {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* Position column */
+.col-pos {
+  width: 32px;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* Cap icons */
+.cap-icon {
+  font-size: 18px;
+}
+
+.cap-orange {
+  filter: hue-rotate(-30deg) saturate(2);
+}
+
+.cap-purple {
+  filter: hue-rotate(180deg) saturate(2);
+}
+
+/* Qualifier subtitle */
+.qualifier {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* Text muted */
+.text-muted {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Record detail */
+.record-detail {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.record-detail:last-child {
+  border-bottom: none;
+}
+
+/* Participation */
+.participation-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.participation-stat {
+  flex: 1;
+  text-align: center;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 10px 6px;
+}
+
+.participation-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.participation-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.participation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.participation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.participation-row.not-played {
+  opacity: 0.5;
+}
+
+.participation-name {
+  width: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participation-bar-wrapper {
+  flex: 1;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.participation-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.3s;
+}
+
+.participation-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Player Profile Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.modal-close:hover {
+  color: var(--text);
+}
+
+.modal-player-header {
+  margin-bottom: 20px;
+}
+
+.modal-player-header h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.modal-section {
+  margin-bottom: 20px;
+}
+
+.modal-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.modal-stat {
+  text-align: center;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 8px 4px;
+}
+
+.modal-stat-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.modal-stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
 /* ===== SYNC STATUS ===== */
 .sync-status {
   display: inline-flex;
