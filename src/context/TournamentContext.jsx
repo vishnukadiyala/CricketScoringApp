@@ -1,0 +1,249 @@
+import { createContext, useContext, useReducer, useEffect } from 'react'
+import { loadTournament, saveTournament } from '../lib/storage'
+import { DEFAULT_OVERS_PER_INNINGS } from '../lib/constants'
+
+const TournamentContext = createContext()
+
+export const initialTournamentState = {
+  name: 'NCC Edition 5',
+  oversPerInnings: DEFAULT_OVERS_PER_INNINGS,
+  teams: [],
+  matches: [],
+  activeMatchId: null,
+  phase: 'setup', // 'setup' | 'league' | 'eliminator' | 'final' | 'completed'
+  spiritNotes: {}, // { matchId: string }
+}
+
+function generateLeagueSchedule(teams) {
+  if (teams.length < 3) return []
+  return [
+    {
+      id: 'match_1', matchNumber: 1, type: 'league',
+      team1Id: teams[0].id, team2Id: teams[1].id,
+      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+    },
+    {
+      id: 'match_2', matchNumber: 2, type: 'league',
+      team1Id: teams[0].id, team2Id: teams[2].id,
+      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+    },
+    {
+      id: 'match_3', matchNumber: 3, type: 'league',
+      team1Id: teams[1].id, team2Id: teams[2].id,
+      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+    },
+  ]
+}
+
+export function tournamentReducer(state, action) {
+  switch (action.type) {
+    case 'CREATE_TOURNAMENT': {
+      return {
+        ...state,
+        name: action.name || state.name,
+        oversPerInnings: action.oversPerInnings || state.oversPerInnings,
+        phase: 'setup',
+      }
+    }
+
+    case 'ADD_TEAM': {
+      if (state.teams.length >= 3) return state
+      const newId = `team_${state.teams.length + 1}`
+      const newTeams = [...state.teams, { id: newId, name: action.name, squad: action.squad || [] }]
+
+      // Auto-generate league schedule when 3rd team is added
+      if (newTeams.length === 3) {
+        return {
+          ...state,
+          teams: newTeams,
+          matches: generateLeagueSchedule(newTeams),
+          phase: 'league',
+        }
+      }
+
+      return { ...state, teams: newTeams }
+    }
+
+    case 'EDIT_TEAM': {
+      const newTeams = state.teams.map(t =>
+        t.id === action.teamId
+          ? { ...t, name: action.name !== undefined ? action.name : t.name, squad: action.squad !== undefined ? action.squad : t.squad }
+          : t
+      )
+      // If teams already = 3, regenerate schedule names (update team refs)
+      let newMatches = state.matches
+      if (newTeams.length === 3 && state.matches.length === 0) {
+        newMatches = generateLeagueSchedule(newTeams)
+      }
+      return { ...state, teams: newTeams, matches: newMatches }
+    }
+
+    case 'REMOVE_TEAM': {
+      const newTeams = state.teams.filter(t => t.id !== action.teamId)
+      // Reset matches if we drop below 3 teams
+      return {
+        ...state,
+        teams: newTeams,
+        matches: newTeams.length < 3 ? [] : state.matches,
+        phase: newTeams.length < 3 ? 'setup' : state.phase,
+      }
+    }
+
+    case 'START_MATCH': {
+      const newMatches = state.matches.map(m =>
+        m.id === action.matchId ? { ...m, status: 'live' } : m
+      )
+      return { ...state, matches: newMatches, activeMatchId: action.matchId }
+    }
+
+    case 'COMPLETE_MATCH': {
+      const { matchId, winnerId, isTied, result, teamSummaries } = action
+      let newMatches = state.matches.map(m =>
+        m.id === matchId
+          ? { ...m, status: 'completed', winnerId, isTied, result, teamSummaries: teamSummaries || m.teamSummaries }
+          : m
+      )
+
+      let newPhase = state.phase
+
+      // Check if all league matches are done
+      const leagueMatches = newMatches.filter(m => m.type === 'league')
+      const allLeagueDone = leagueMatches.every(m => m.status === 'completed')
+
+      if (allLeagueDone && !newMatches.find(m => m.type === 'eliminator')) {
+        // Compute standings to determine 2nd and 3rd
+        const standings = getQuickStandings(state.teams, leagueMatches)
+        if (standings.length >= 3) {
+          newMatches = [...newMatches, {
+            id: 'match_4', matchNumber: 4, type: 'eliminator',
+            team1Id: standings[1].teamId, team2Id: standings[2].teamId,
+            status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+          }]
+          newPhase = 'eliminator'
+        }
+      }
+
+      // Check if eliminator is done
+      const eliminator = newMatches.find(m => m.type === 'eliminator')
+      if (eliminator && eliminator.status === 'completed' && !newMatches.find(m => m.type === 'final')) {
+        const leagueStandings = getQuickStandings(state.teams, leagueMatches)
+        const firstPlaceId = leagueStandings[0]?.teamId
+        const eliminatorWinnerId = eliminator.winnerId
+        if (firstPlaceId && eliminatorWinnerId) {
+          newMatches = [...newMatches, {
+            id: 'match_5', matchNumber: 5, type: 'final',
+            team1Id: firstPlaceId, team2Id: eliminatorWinnerId,
+            status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+          }]
+          newPhase = 'final'
+        }
+      }
+
+      // Check if final is done
+      const final_ = newMatches.find(m => m.type === 'final')
+      if (final_ && final_.status === 'completed') {
+        newPhase = 'completed'
+      }
+      // Edge: if the match being completed is the final
+      if (matchId === 'match_5') {
+        newPhase = 'completed'
+      }
+
+      return {
+        ...state,
+        matches: newMatches,
+        activeMatchId: null,
+        phase: newPhase,
+      }
+    }
+
+    case 'SET_SPIRIT_NOTE': {
+      return {
+        ...state,
+        spiritNotes: {
+          ...state.spiritNotes,
+          [action.matchId]: action.note,
+        },
+      }
+    }
+
+    case 'RESET_TOURNAMENT': {
+      return { ...initialTournamentState }
+    }
+
+    default:
+      return state
+  }
+}
+
+// Quick standings computation for reducer use (avoids circular import)
+function getQuickStandings(teams, leagueMatches) {
+  const completed = leagueMatches.filter(m => m.status === 'completed')
+  const stats = teams.map(team => {
+    let won = 0, lost = 0, tied = 0
+    completed.forEach(m => {
+      if (m.team1Id !== team.id && m.team2Id !== team.id) return
+      if (m.isTied) tied++
+      else if (m.winnerId === team.id) won++
+      else lost++
+    })
+    const points = won * 2 + tied * 1
+
+    // Simple NRR
+    let runsScored = 0, oversFaced = 0, runsConceded = 0, oversBowled = 0
+    completed.forEach(m => {
+      if (m.team1Id !== team.id && m.team2Id !== team.id) return
+      const s = m.teamSummaries?.[team.id]
+      if (s) {
+        runsScored += s.runsScored
+        oversFaced += s.oversFaced
+        runsConceded += s.runsConceded
+        oversBowled += s.oversBowled
+      }
+    })
+    const nrr = oversFaced > 0 && oversBowled > 0
+      ? (runsScored / oversFaced) - (runsConceded / oversBowled)
+      : 0
+
+    return { teamId: team.id, teamName: team.name, points, nrr, won, lost, tied }
+  })
+
+  stats.sort((a, b) => {
+    if (b.points !== a.points) return b.points - a.points
+    return b.nrr - a.nrr
+  })
+
+  return stats
+}
+
+export function TournamentProvider({ children }) {
+  const [state, dispatch] = useReducer(tournamentReducer, initialTournamentState, () => {
+    return loadTournament() || initialTournamentState
+  })
+
+  useEffect(() => {
+    saveTournament(state)
+  }, [state])
+
+  const getTeamName = (teamId) => {
+    const team = state.teams.find(t => t.id === teamId)
+    return team ? team.name : teamId
+  }
+
+  const getTeamById = (teamId) => state.teams.find(t => t.id === teamId) || null
+
+  const value = {
+    ...state,
+    dispatch,
+    getTeamName,
+    getTeamById,
+  }
+
+  return <TournamentContext.Provider value={value}>{children}</TournamentContext.Provider>
+}
+
+export function useTournament() {
+  const context = useContext(TournamentContext)
+  if (!context) throw new Error('useTournament must be used within TournamentProvider')
+  return context
+}
