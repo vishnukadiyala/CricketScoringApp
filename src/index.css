@@ -2580,10 +2580,17 @@ button:focus-visible {
   margin-bottom: 16px;
 }
 
+.auth-toggle-group {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .btn-auth-toggle {
   display: block;
   width: 100%;
-  margin-top: 16px;
+  margin-top: 4px;
   padding: 8px;
   background: none;
   border: none;
