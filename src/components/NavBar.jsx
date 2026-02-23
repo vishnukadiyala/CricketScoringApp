@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { auth, signOut } from '../lib/firebase'
+import { auth, signOut, isSpectatorMode } from '../lib/firebase'
 
 export default function NavBar() {
   const location = useLocation()
@@ -12,8 +12,8 @@ export default function NavBar() {
   // Hide nav on login page
   if (location.pathname === '/login') return null
 
-  // Hide nav when auth is enabled but user isn't authenticated
-  if (isAuthEnabled && !isAuthenticated) return null
+  // Hide nav when auth is enabled but user isn't authenticated (not spectator)
+  if (!isSpectatorMode && isAuthEnabled && !isAuthenticated) return null
 
   const handleLogout = async () => {
     try {
@@ -34,12 +34,12 @@ export default function NavBar() {
       <NavLink to="/stats" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         Stats
       </NavLink>
-      {(!isAuthEnabled || isOrganizer) && (
+      {!isSpectatorMode && (!isAuthEnabled || isOrganizer) && (
         <NavLink to="/admin" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
           Admin
         </NavLink>
       )}
-      {isAuthEnabled && isAuthenticated && (
+      {!isSpectatorMode && isAuthEnabled && isAuthenticated && (
         <button className="nav-tab nav-logout" onClick={handleLogout} type="button">
           Logout
         </button>

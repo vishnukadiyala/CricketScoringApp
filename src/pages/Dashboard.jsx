@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useTournament } from '../context/TournamentContext'
 import { useAuth } from '../context/AuthContext'
+import { isSpectatorMode } from '../lib/firebase'
 import PointsTable from '../components/PointsTable'
 import MatchSchedule from '../components/MatchSchedule'
 import SpiritTracker from '../components/SpiritTracker'
@@ -11,8 +12,8 @@ export default function Dashboard() {
   const { isAuthEnabled, isOrganizer } = useAuth()
 
   if (teams.length === 0) {
-    // Only organizers can set up; players see a message
-    if (isAuthEnabled && !isOrganizer) {
+    // Spectators and non-organizers see a message
+    if (isSpectatorMode || (isAuthEnabled && !isOrganizer)) {
       return (
         <div className="app">
           <header className="app-header">

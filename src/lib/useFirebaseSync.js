@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { db, isFirebaseConfigured, ref, set, onValue, off } from './firebase'
+import { db, isFirebaseConfigured, isSpectatorMode, ref, set, onValue, off } from './firebase'
 
 export function useFirebaseSync(path, localState, onRemoteUpdate, options = {}) {
   const { enabled = true, debounceMs = 500, filterBeforeWrite } = options
@@ -31,9 +31,9 @@ export function useFirebaseSync(path, localState, onRemoteUpdate, options = {}) 
     }
   }, [active, path])
 
-  // Write: debounced push to Firebase
+  // Write: debounced push to Firebase (disabled in spectator mode)
   useEffect(() => {
-    if (!active) return
+    if (!active || isSpectatorMode) return
 
     // Skip write if this state change came from a remote update
     if (isRemoteUpdateRef.current) {

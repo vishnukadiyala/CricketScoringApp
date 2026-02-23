@@ -13,6 +13,7 @@ const firebaseConfig = {
 }
 
 export const isFirebaseConfigured = Boolean(firebaseConfig.databaseURL)
+export const isSpectatorMode = import.meta.env.VITE_SPECTATOR_MODE === 'true'
 
 let db = null
 let auth = null

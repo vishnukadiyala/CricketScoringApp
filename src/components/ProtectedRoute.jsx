@@ -1,8 +1,15 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { isSpectatorMode } from '../lib/firebase'
 
 export default function ProtectedRoute({ children, requiredRole }) {
   const { isAuthEnabled, isAuthenticated, role, loading } = useAuth()
+
+  // Spectator mode: allow public pages, block organizer-only pages
+  if (isSpectatorMode) {
+    if (requiredRole) return <Navigate to="/" replace />
+    return children
+  }
 
   if (!isAuthEnabled) return children
 
