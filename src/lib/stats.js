@@ -454,12 +454,30 @@ export function getPurpleCapList(bowlingStats) {
 }
 
 /**
- * Best economy (min 6 overs).
+ * Best economy (min 2 overs).
  */
-export function getBestEconomy(bowlingStats, minOvers = 6) {
+export function getBestEconomy(bowlingStats, minOvers = 2) {
   return [...bowlingStats]
     .filter(p => p.overs >= minOvers)
     .sort((a, b) => a.economy - b.economy)
+}
+
+/**
+ * Best bowling average (min 2 wickets).
+ */
+export function getBestBowlingAverage(bowlingStats, minWickets = 2) {
+  return [...bowlingStats]
+    .filter(p => p.wickets >= minWickets)
+    .sort((a, b) => a.bowlingAverage - b.bowlingAverage)
+}
+
+/**
+ * Best bowling strike rate (min 2 wickets).
+ */
+export function getBestBowlingStrikeRate(bowlingStats, minWickets = 2) {
+  return [...bowlingStats]
+    .filter(p => p.wickets >= minWickets)
+    .sort((a, b) => a.bowlingStrikeRate - b.bowlingStrikeRate)
 }
 
 /**

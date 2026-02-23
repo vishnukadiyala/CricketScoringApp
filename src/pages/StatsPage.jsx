@@ -15,6 +15,8 @@ import {
   computeBowlingLeaderboard,
   getPurpleCapList,
   getBestEconomy,
+  getBestBowlingAverage,
+  getBestBowlingStrikeRate,
   getBestBowlingFigures,
   getMostDotBalls,
   getMostMaidens,
@@ -365,7 +367,7 @@ function BattingTab({ battingStats, bowlingStats, onPlayerClick }) {
 
       {subView === 'best-avg' && (
         <div className="card">
-          <h2>Best Batting Average <span className="qualifier">(min 2 innings)</span></h2>
+          <h2>Best Batting Average <span className="qualifier">(min. 2 innings batted)</span></h2>
           <div className="table-wrapper">
             <table className="stats-table">
               <thead>
@@ -513,6 +515,8 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
 
   const purpleCap = useMemo(() => getPurpleCapList(bowlingStats), [bowlingStats])
   const bestEconomy = useMemo(() => getBestEconomy(bowlingStats), [bowlingStats])
+  const bestBowlAvg = useMemo(() => getBestBowlingAverage(bowlingStats), [bowlingStats])
+  const bestBowlSR = useMemo(() => getBestBowlingStrikeRate(bowlingStats), [bowlingStats])
   const bestFigures = useMemo(() => getBestBowlingFigures(bowlingStats), [bowlingStats])
   const mostDots = useMemo(() => getMostDotBalls(bowlingStats), [bowlingStats])
   const mostMaidens = useMemo(() => getMostMaidens(bowlingStats), [bowlingStats])
@@ -527,6 +531,8 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
   const subViews = [
     { id: 'purple-cap', label: 'Purple Cap' },
     { id: 'best-econ', label: 'Best Economy' },
+    { id: 'best-bowl-avg', label: 'Best Avg' },
+    { id: 'best-bowl-sr', label: 'Best SR' },
     { id: 'best-figures', label: 'Best Figures' },
     { id: 'dot-balls', label: 'Dot Balls' },
     { id: 'maidens', label: 'Maidens' },
@@ -591,7 +597,7 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
 
       {subView === 'best-econ' && (
         <div className="card">
-          <h2>Best Economy Rate <span className="qualifier">(min 6 overs)</span></h2>
+          <h2>Best Economy Rate <span className="qualifier">(min. 2 overs bowled)</span></h2>
           <div className="table-wrapper">
             <table className="stats-table">
               <thead>
@@ -614,6 +620,72 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
                     <td className="col-stat">{p.overs}</td>
                     <td className="col-stat">{p.runs}</td>
                     <td className="col-stat stat-highlight">{p.economy.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subView === 'best-bowl-avg' && (
+        <div className="card">
+          <h2>Best Bowling Average <span className="qualifier">(min. 2 wickets taken)</span></h2>
+          <div className="table-wrapper">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th className="col-pos">#</th>
+                  <th className="col-name">Player</th>
+                  <th className="col-stat">W</th>
+                  <th className="col-stat">R</th>
+                  <th className="col-stat">Avg</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bestBowlAvg.slice(0, 15).map((p, i) => (
+                  <tr key={`${p.teamId}-${p.name}`} className={rankClass(i)}>
+                    <td className="col-pos">{i + 1}</td>
+                    <td className="col-name">
+                      <PlayerName player={p} onClick={handlePlayerClick} />
+                      <span className="player-team-badge">{p.team}</span>
+                    </td>
+                    <td className="col-stat">{p.wickets}</td>
+                    <td className="col-stat">{p.runs}</td>
+                    <td className="col-stat stat-highlight">{fmtAvg(p.bowlingAverage)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subView === 'best-bowl-sr' && (
+        <div className="card">
+          <h2>Best Bowling Strike Rate <span className="qualifier">(min. 2 wickets taken)</span></h2>
+          <div className="table-wrapper">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th className="col-pos">#</th>
+                  <th className="col-name">Player</th>
+                  <th className="col-stat">W</th>
+                  <th className="col-stat">B</th>
+                  <th className="col-stat">SR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bestBowlSR.slice(0, 15).map((p, i) => (
+                  <tr key={`${p.teamId}-${p.name}`} className={rankClass(i)}>
+                    <td className="col-pos">{i + 1}</td>
+                    <td className="col-name">
+                      <PlayerName player={p} onClick={handlePlayerClick} />
+                      <span className="player-team-badge">{p.team}</span>
+                    </td>
+                    <td className="col-stat">{p.wickets}</td>
+                    <td className="col-stat">{p.balls}</td>
+                    <td className="col-stat stat-highlight">{fmtSR(p.bowlingStrikeRate)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1158,15 +1230,21 @@ function ParticipationTab({ matchData, teams }) {
 
 // ─── PLAYER PROFILE MODAL ───────────────────────────────────────
 
-function QualifierBadge({ current, required, unit }) {
+function QualifierRow({ label, value, current, required, unit, formatFn }) {
   const qualifies = current >= required
   return (
-    <span className={`qualifier-badge ${qualifies ? 'qualifier-met' : 'qualifier-unmet'}`}>
-      {qualifies
-        ? `Qualified (${current} ${unit})`
-        : `${current}/${required} ${unit} to qualify`
-      }
-    </span>
+    <div className="modal-qualifier-row">
+      <span className="modal-qualifier-stat">{label}</span>
+      {qualifies ? (
+        <span className="qualifier-badge qualifier-met">
+          {formatFn ? formatFn(value) : value}
+        </span>
+      ) : (
+        <span className="qualifier-badge qualifier-unmet">
+          {formatFn ? formatFn(value) : value} ({current}/{required} {unit} to qualify)
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -1200,14 +1278,22 @@ function PlayerModal({ player, onClose }) {
             </div>
 
             <div className="modal-qualifiers">
-              <div className="modal-qualifier-row">
-                <span className="modal-qualifier-stat">Strike Rate</span>
-                <QualifierBadge current={batting.balls} required={10} unit="balls" />
-              </div>
-              <div className="modal-qualifier-row">
-                <span className="modal-qualifier-stat">Batting Avg</span>
-                <QualifierBadge current={batting.innings} required={2} unit="innings" />
-              </div>
+              <QualifierRow
+                label="Strike Rate"
+                value={batting.strikeRate}
+                current={batting.balls}
+                required={10}
+                unit="balls"
+                formatFn={v => `SR: ${fmtSR(v)}`}
+              />
+              <QualifierRow
+                label="Batting Avg"
+                value={batting.average}
+                current={batting.innings}
+                required={2}
+                unit="innings"
+                formatFn={v => `Avg: ${fmtAvg(v)}`}
+              />
             </div>
 
             {batting.inningsList && batting.inningsList.length > 0 && (
@@ -1260,10 +1346,30 @@ function PlayerModal({ player, onClose }) {
             </div>
 
             <div className="modal-qualifiers">
-              <div className="modal-qualifier-row">
-                <span className="modal-qualifier-stat">Economy Rate</span>
-                <QualifierBadge current={bowling.overs} required={6} unit="overs" />
-              </div>
+              <QualifierRow
+                label="Economy"
+                value={bowling.economy}
+                current={bowling.overs}
+                required={2}
+                unit="overs"
+                formatFn={v => `Econ: ${v.toFixed(2)}`}
+              />
+              <QualifierRow
+                label="Bowling Avg"
+                value={bowling.bowlingAverage}
+                current={bowling.wickets}
+                required={2}
+                unit="wickets"
+                formatFn={v => `Avg: ${fmtAvg(v)}`}
+              />
+              <QualifierRow
+                label="Bowling SR"
+                value={bowling.bowlingStrikeRate}
+                current={bowling.wickets}
+                required={2}
+                unit="wickets"
+                formatFn={v => `SR: ${v === Infinity ? '-' : fmtSR(v)}`}
+              />
             </div>
 
             {bowling.figuresList && bowling.figuresList.length > 0 && (

@@ -13,6 +13,8 @@ import {
   computeBowlingLeaderboard,
   getPurpleCapList,
   getBestEconomy,
+  getBestBowlingAverage,
+  getBestBowlingStrikeRate,
   getBestBowlingFigures,
   getMostMaidens,
   computeFieldingStats,
@@ -401,13 +403,13 @@ describe('computeBowlingLeaderboard', () => {
     expect(purple[0].bestFigures).toBe('3/20')
   })
 
-  it('applies minimum overs filter for best economy', () => {
+  it('includes bowler with exactly 2 overs in economy leaderboard (new threshold)', () => {
     const data = [
       makeMatchData(
         makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
         makeMatchState('Alpha', 'Beta', [
           makeInnings('Beta', 'Alpha', [], [
-            makeBowler('A1', 2, 0, 5, 1),  // 2 overs, econ 2.5 — below min
+            makeBowler('A1', 2, 0, 5, 1),  // 2 overs, econ 2.5 — qualifies at new min 2
             makeBowler('A2', 6, 1, 20, 2), // 6 overs, econ 3.33
           ]),
           null, null, null,
@@ -416,10 +418,77 @@ describe('computeBowlingLeaderboard', () => {
     ]
 
     const bowling = computeBowlingLeaderboard(data)
-    const bestEcon = getBestEconomy(bowling, 6)
+    const bestEcon = getBestEconomy(bowling) // default min 2 overs
+
+    expect(bestEcon.find(p => p.name === 'A1')).toBeDefined()
+    expect(bestEcon[0].name).toBe('A1') // 2.5 < 3.33
+  })
+
+  it('excludes bowler with 1.5 overs from economy leaderboard', () => {
+    const data = [
+      makeMatchData(
+        makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
+        makeMatchState('Alpha', 'Beta', [
+          makeInnings('Beta', 'Alpha', [], [
+            makeBowler('A1', 1, 0, 3, 0),  // 1 over — below min 2
+            makeBowler('A2', 3, 0, 15, 1), // 3 overs, econ 5.0
+          ]),
+          null, null, null,
+        ])
+      ),
+    ]
+
+    const bowling = computeBowlingLeaderboard(data)
+    const bestEcon = getBestEconomy(bowling) // default min 2 overs
 
     expect(bestEcon.find(p => p.name === 'A1')).toBeUndefined()
     expect(bestEcon[0].name).toBe('A2')
+  })
+
+  it('computes best bowling average with min 2 wickets', () => {
+    const data = [
+      makeMatchData(
+        makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
+        makeMatchState('Alpha', 'Beta', [
+          makeInnings('Beta', 'Alpha', [], [
+            makeBowler('A1', 3, 0, 10, 1),  // 1 wicket — below min
+            makeBowler('A2', 3, 0, 20, 3),  // 3 wickets, avg 6.67
+            makeBowler('A3', 3, 0, 30, 2),  // 2 wickets, avg 15.0
+          ]),
+          null, null, null,
+        ])
+      ),
+    ]
+
+    const bowling = computeBowlingLeaderboard(data)
+    const bestAvg = getBestBowlingAverage(bowling)
+
+    expect(bestAvg.find(p => p.name === 'A1')).toBeUndefined()
+    expect(bestAvg[0].name).toBe('A2') // 6.67 < 15.0
+    expect(bestAvg[0].bowlingAverage).toBeCloseTo(6.67, 1)
+    expect(bestAvg[1].name).toBe('A3')
+  })
+
+  it('computes best bowling strike rate with min 2 wickets', () => {
+    const data = [
+      makeMatchData(
+        makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
+        makeMatchState('Alpha', 'Beta', [
+          makeInnings('Beta', 'Alpha', [], [
+            makeBowler('A1', 3, 0, 10, 1),  // 1 wicket — below min
+            makeBowler('A2', 2, 0, 12, 2),  // 2 wickets, SR = 12/2 = 6.0
+            makeBowler('A3', 3, 0, 25, 3),  // 3 wickets, SR = 18/3 = 6.0
+          ]),
+          null, null, null,
+        ])
+      ),
+    ]
+
+    const bowling = computeBowlingLeaderboard(data)
+    const bestSR = getBestBowlingStrikeRate(bowling)
+
+    expect(bestSR.find(p => p.name === 'A1')).toBeUndefined()
+    expect(bestSR.length).toBe(2) // Only A2 and A3 qualify
   })
 
   it('computes best bowling figures', () => {
