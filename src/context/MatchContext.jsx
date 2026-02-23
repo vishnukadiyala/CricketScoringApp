@@ -745,50 +745,37 @@ export function matchReducer(state, action) {
         return obj
       }
       const restored = deepConvert(cleaned)
-      // Firebase drops empty arrays — restore missing array fields in innings
-      if (restored.innings) {
-        restored.innings = (Array.isArray(restored.innings) ? restored.innings : Object.values(restored.innings)).map(inn => {
-          if (!inn) return inn
-          return {
-            ...inn,
-            currentOver: inn.currentOver || [],
-            allOvers: inn.allOvers || [],
-            batsmen: inn.batsmen || [],
-            bowlers: inn.bowlers || [],
-            fallOfWickets: inn.fallOfWickets || [],
-          }
-        })
-      }
-      // Restore other potentially missing arrays
-      if (restored.inningsOrder && !Array.isArray(restored.inningsOrder)) {
-        restored.inningsOrder = Object.values(restored.inningsOrder)
-      }
-      if (restored.squads) {
-        restored.squads = {
-          team1: restored.squads.team1 || [],
-          team2: restored.squads.team2 || [],
-        }
-      }
-      if (restored.activeRosters) {
-        restored.activeRosters = {
-          team1: restored.activeRosters.team1 || [],
-          team2: restored.activeRosters.team2 || [],
-        }
-      }
-      if (restored.substitutions) {
-        restored.substitutions = {
-          team1: restored.substitutions.team1 || [],
-          team2: restored.substitutions.team2 || [],
-        }
-      }
-      if (restored.inningsTimers && !Array.isArray(restored.inningsTimers)) {
-        restored.inningsTimers = typeof restored.inningsTimers === 'object' ? restored.inningsTimers : {}
-      }
-      return { ...initialState, ...restored, ballHistory: [], superOverHistory: [] }
+      return restoreInningsDefaults({ ...initialState, ...restored, ballHistory: [], superOverHistory: [] })
     }
 
     default:
       return state
+  }
+}
+
+// Restore fields that Firebase or JSON serialization may drop (empty arrays/objects)
+function restoreInningsDefaults(state) {
+  if (!state || !state.innings) return state
+  const innings = (Array.isArray(state.innings) ? state.innings : Object.values(state.innings)).map(inn => {
+    if (!inn) return inn
+    return {
+      ...inn,
+      currentOver: inn.currentOver || [],
+      allOvers: inn.allOvers || [],
+      batsmen: inn.batsmen || [],
+      bowlers: inn.bowlers || [],
+      fallOfWickets: inn.fallOfWickets || [],
+      bowlerOversMap: inn.bowlerOversMap || {},
+      extras: inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
+    }
+  })
+  return {
+    ...state,
+    innings,
+    inningsOrder: Array.isArray(state.inningsOrder) ? state.inningsOrder : (state.inningsOrder ? Object.values(state.inningsOrder) : []),
+    squads: { team1: state.squads?.team1 || [], team2: state.squads?.team2 || [] },
+    activeRosters: { team1: state.activeRosters?.team1 || [], team2: state.activeRosters?.team2 || [] },
+    substitutions: { team1: state.substitutions?.team1 || [], team2: state.substitutions?.team2 || [] },
   }
 }
 
@@ -806,7 +793,7 @@ function loadSavedState(key) {
     // Validate it has the expected shape
     if (parsed && parsed.phase && parsed.innings) {
       // Restore ballHistory as empty (don't persist undo history)
-      return { ...initialState, ...parsed, ballHistory: [] }
+      return restoreInningsDefaults({ ...initialState, ...parsed, ballHistory: [] })
     }
   } catch {
     // Corrupted data — ignore
