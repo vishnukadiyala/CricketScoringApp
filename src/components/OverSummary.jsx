@@ -8,7 +8,7 @@ export default function OverSummary() {
       && phase !== 'match-over' && phase !== 'follow-on-decision' && phase !== 'squad-rotation') return null
 
   const inn = innings[currentInnings]
-  if (!inn || inn.allOvers.length === 0) return null
+  if (!inn || !inn.allOvers?.length) return null
 
   const ordinal = getOrdinal(currentInnings + 1)
 
@@ -16,7 +16,7 @@ export default function OverSummary() {
     <div className="over-summary">
       <h3>{inn.battingTeam} — {ordinal} Innings — Overs</h3>
       <div className="overs-list">
-        {inn.allOvers.map((over, idx) => {
+        {(inn.allOvers || []).map((over, idx) => {
           const overRuns = calculateOverRuns(over)
 
           return (

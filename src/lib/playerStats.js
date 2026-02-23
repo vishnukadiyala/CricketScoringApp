@@ -20,7 +20,7 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
 
       // Batting stats: if this team was batting
       if (inn.battingTeam === teamName) {
-        inn.batsmen.forEach(bat => {
+        ;(inn.batsmen || []).forEach(bat => {
           if (!bat) return
           if (!playerMap[bat.name]) {
             playerMap[bat.name] = createEmptyStats(bat.name)
@@ -40,7 +40,7 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
 
       // Bowling stats: if this team was bowling
       if (inn.bowlingTeam === teamName) {
-        inn.bowlers.forEach(bowl => {
+        ;(inn.bowlers || []).forEach(bowl => {
           if (!bowl) return
           if (!playerMap[bowl.name]) {
             playerMap[bowl.name] = createEmptyStats(bowl.name)

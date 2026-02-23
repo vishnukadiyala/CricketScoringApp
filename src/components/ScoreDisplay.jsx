@@ -132,7 +132,7 @@ export default function ScoreDisplay() {
       <div className="bowler-info">
         <span className="bowler-name">
           {bowler.name}
-          <span className="bowler-cap">[{inn.bowlerOversMap[bowler.name] || 0}/{MAX_OVERS_PER_BOWLER} ov]</span>
+          <span className="bowler-cap">[{inn.bowlerOversMap?.[bowler.name] || 0}/{MAX_OVERS_PER_BOWLER} ov]</span>
         </span>
         <span className="bowler-stats">
           {bowler.overs}.{bowler.ballsInOver}-{bowler.maidens}-{bowler.runs}-{bowler.wickets}
@@ -140,11 +140,11 @@ export default function ScoreDisplay() {
       </div>
 
       {/* This over strip */}
-      {inn.currentOver.length > 0 && (
+      {inn.currentOver?.length > 0 && (
         <div className="current-over">
           <span className="over-label">This Over:</span>
           <div className="over-balls">
-            {inn.currentOver.map((ball, i) => (
+            {(inn.currentOver || []).map((ball, i) => (
               <span key={i} className={`ball-badge ${getBallClass(ball)}`}>{ball}</span>
             ))}
           </div>
@@ -153,8 +153,8 @@ export default function ScoreDisplay() {
 
       {/* Extras */}
       <div className="extras-line">
-        Extras: {inn.extras.wides}w {inn.extras.noBalls}nb {inn.extras.byes}b {inn.extras.legByes}lb
-        (Total: {inn.extras.wides + inn.extras.noBalls + inn.extras.byes + inn.extras.legByes})
+        Extras: {inn.extras?.wides || 0}w {inn.extras?.noBalls || 0}nb {inn.extras?.byes || 0}b {inn.extras?.legByes || 0}lb
+        (Total: {(inn.extras?.wides || 0) + (inn.extras?.noBalls || 0) + (inn.extras?.byes || 0) + (inn.extras?.legByes || 0)})
       </div>
 
       {/* Innings Timer */}
@@ -192,14 +192,14 @@ function InningsTimer({ startTime }) {
 }
 
 function BowlingTracker({ innings: inn, currentBowlerIndex }) {
-  if (!inn || inn.bowlers.length === 0) return null
+  if (!inn || !inn.bowlers?.length) return null
 
   return (
     <div className="bowling-tracker">
       <h4>Bowling Figures</h4>
       <div className="bowling-list">
-        {inn.bowlers.map((b, idx) => {
-          const overs = inn.bowlerOversMap[b.name] || 0
+        {(inn.bowlers || []).map((b, idx) => {
+          const overs = inn.bowlerOversMap?.[b.name] || 0
           const isCurrent = idx === currentBowlerIndex
           const isExhausted = overs >= MAX_OVERS_PER_BOWLER
 

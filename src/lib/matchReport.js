@@ -42,7 +42,7 @@ export function generateMatchReport(matchState) {
   }
 
   // Innings summaries
-  innings.forEach((inn, idx) => {
+  ;(innings || []).forEach((inn, idx) => {
     if (!inn || !inn.batsmen || inn.batsmen.length === 0) return
     lines.push(`${getOrdinal(idx + 1)} Innings: ${inn.battingTeam}`)
     lines.push(`  ${inn.totalRuns}/${inn.wickets} (${inn.oversCompleted}.${inn.ballsInCurrentOver} ov)`)
@@ -96,7 +96,7 @@ export function generateMatchReport(matchState) {
   // Find overall best performers
   const allBatsmen = []
   const allBowlers = []
-  innings.forEach(inn => {
+  ;(innings || []).forEach(inn => {
     if (!inn) return
     inn.batsmen?.forEach(b => allBatsmen.push({ ...b, team: inn.battingTeam }))
     inn.bowlers?.forEach(b => allBowlers.push({ ...b, team: inn.bowlingTeam }))

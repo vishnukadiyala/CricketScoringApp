@@ -119,7 +119,7 @@ export function computeBattingLeaderboard(matchData, teams) {
       const battingTeamId = matchMeta[`${battingTeamKey}Id`]
       const bowlingTeamId = battingTeamKey === 'team1' ? matchMeta.team2Id : matchMeta.team1Id
 
-      inn.batsmen.forEach(bat => {
+      ;(inn.batsmen || []).forEach(bat => {
         if (!bat) return
         const key = `${battingTeamId}::${bat.name}`
         if (!playerMap[key]) {
@@ -295,7 +295,7 @@ export function computeBowlingLeaderboard(matchData) {
       const bowlingTeamKey = getTeamKey(matchState, inn.bowlingTeam)
       const bowlingTeamId = matchMeta[`${bowlingTeamKey}Id`]
 
-      inn.bowlers.forEach(bowl => {
+      ;(inn.bowlers || []).forEach(bowl => {
         if (!bowl) return
         const key = `${bowlingTeamId}::${bowl.name}`
         if (!playerMap[key]) {
@@ -415,7 +415,7 @@ export function computeBowlingLeaderboard(matchData) {
       }
 
       // Distribute dots proportionally by overs bowled
-      const bowlersOnTeam = inn.bowlers.filter(Boolean)
+      const bowlersOnTeam = (inn.bowlers || []).filter(Boolean)
       const totalOvers = bowlersOnTeam.reduce((s, b) => s + b.overs, 0)
       bowlersOnTeam.forEach(bowl => {
         const key = `${bowlingTeamId}::${bowl.name}`
@@ -561,7 +561,7 @@ export function computeFieldingStats(matchData) {
       }
 
       const t = teamMap[bowlingTeamId]
-      inn.batsmen.forEach(bat => {
+      ;(inn.batsmen || []).forEach(bat => {
         if (!bat || !bat.isOut) return
         switch (bat.dismissal) {
           case 'caught': t.catches++; break
@@ -895,10 +895,10 @@ export function computeParticipation(matchData, teams) {
       matchState.innings.forEach(inn => {
         if (!inn) return
         if (inn.battingTeam === team.name) {
-          inn.batsmen.forEach(b => { if (b) played.add(b.name) })
+          ;(inn.batsmen || []).forEach(b => { if (b) played.add(b.name) })
         }
         if (inn.bowlingTeam === team.name) {
-          inn.bowlers.forEach(b => { if (b) played.add(b.name) })
+          ;(inn.bowlers || []).forEach(b => { if (b) played.add(b.name) })
         }
       })
 

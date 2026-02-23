@@ -16,8 +16,8 @@ export default function BattingOrder() {
   const battingKey = inn.battingTeam === team1 ? 'team1' : 'team2'
   const bowlingKey = inn.bowlingTeam === team1 ? 'team1' : 'team2'
 
-  const battingPlayers = activeRosters[battingKey].filter(p => !p.substituted).map(p => p.name)
-  const bowlingPlayers = activeRosters[bowlingKey].filter(p => !p.substituted).map(p => p.name)
+  const battingPlayers = (activeRosters[battingKey] || []).filter(p => !p.substituted).map(p => p.name)
+  const bowlingPlayers = (activeRosters[bowlingKey] || []).filter(p => !p.substituted).map(p => p.name)
 
   const ordinal = getOrdinal(currentInnings + 1)
 

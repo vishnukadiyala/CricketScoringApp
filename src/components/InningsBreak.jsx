@@ -104,7 +104,8 @@ export default function InningsBreak() {
 function InningsSummaryCard({ inn, idx, getOrdinal, inningsTimers }) {
   if (!inn) return null
 
-  const totalExtras = inn.extras.wides + inn.extras.noBalls + inn.extras.byes + inn.extras.legByes
+  const extras = inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 }
+  const totalExtras = extras.wides + extras.noBalls + extras.byes + extras.legByes
   const timerStart = inningsTimers?.[idx]
   // Use innings end time if available, otherwise capture a stable reference
   const elapsed = timerStart ? (inn.endTime || timerStart) - timerStart : null
@@ -122,7 +123,7 @@ function InningsSummaryCard({ inn, idx, getOrdinal, inningsTimers }) {
         <div className="summary-row">
           <span className="summary-label">Extras:</span>
           <span className="summary-value">
-            {totalExtras} ({inn.extras.wides}w, {inn.extras.noBalls}nb, {inn.extras.byes}b, {inn.extras.legByes}lb)
+            {totalExtras} ({extras.wides}w, {extras.noBalls}nb, {extras.byes}b, {extras.legByes}lb)
           </span>
         </div>
         <div className="summary-row">
@@ -135,11 +136,11 @@ function InningsSummaryCard({ inn, idx, getOrdinal, inningsTimers }) {
             <span className="summary-value">{duration}</span>
           </div>
         )}
-        {inn.fallOfWickets.length > 0 && (
+        {inn.fallOfWickets?.length > 0 && (
           <div className="summary-row fow-row">
             <span className="summary-label">Fall of Wickets:</span>
             <div className="fow-list">
-              {inn.fallOfWickets.map((fow, i) => (
+              {(inn.fallOfWickets || []).map((fow, i) => (
                 <span key={i} className="fow-item">
                   {fow.wickets}-{fow.runs} ({fow.batsmanName}, {fow.overs} ov)
                 </span>

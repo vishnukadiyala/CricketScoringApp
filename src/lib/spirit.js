@@ -31,7 +31,7 @@ export function computeRotationDiversity(teams, matches) {
       // Check playing XI from innings data
       const playedNames = new Set()
 
-      for (const inn of matchState.innings) {
+      for (const inn of (matchState.innings || [])) {
         if (!inn) continue
         if (inn.battingTeam === teamName) {
           inn.batsmen?.forEach(b => playedNames.add(b.name))

@@ -57,7 +57,7 @@ export default function MatchScorecard({ matchState }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {inn.batsmen.map((bat, bIdx) => (
+                  {(inn.batsmen || []).map((bat, bIdx) => (
                     <tr key={bIdx} className={bat.isOut ? 'out' : 'not-out'}>
                       <td className="col-name">{bat.name}</td>
                       <td className="col-dismissal">{bat.isOut ? bat.dismissal : 'not out'}</td>
@@ -74,8 +74,8 @@ export default function MatchScorecard({ matchState }) {
 
             {/* Extras */}
             <div className="scorecard-extras">
-              Extras: Wd {inn.extras.wides}, NB {inn.extras.noBalls}, B {inn.extras.byes}, LB {inn.extras.legByes}
-              {' '}= {inn.extras.wides + inn.extras.noBalls + inn.extras.byes + inn.extras.legByes}
+              Extras: Wd {inn.extras?.wides || 0}, NB {inn.extras?.noBalls || 0}, B {inn.extras?.byes || 0}, LB {inn.extras?.legByes || 0}
+              {' '}= {(inn.extras?.wides || 0) + (inn.extras?.noBalls || 0) + (inn.extras?.byes || 0) + (inn.extras?.legByes || 0)}
             </div>
 
             {/* Bowling */}
@@ -92,7 +92,7 @@ export default function MatchScorecard({ matchState }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {inn.bowlers.map((bowl, bIdx) => (
+                  {(inn.bowlers || []).map((bowl, bIdx) => (
                     <tr key={bIdx}>
                       <td className="col-name">{bowl.name}</td>
                       <td className="col-stat">{bowl.overs}</td>

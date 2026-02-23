@@ -26,18 +26,18 @@ export default function Scoring() {
 
   // New bowler selection screen
   if (phase === 'new-bowler') {
-    const previousBowler = inn.bowlers[inn.currentBowlerIndex]?.name
-    const bowlingPlayers = activeRosters[bowlingKey]
+    const previousBowler = (inn.bowlers || [])[inn.currentBowlerIndex]?.name
+    const bowlingPlayers = (activeRosters[bowlingKey] || [])
       .filter(p => !p.substituted)
       .map(p => p.name)
 
     const maxOvers = MAX_OVERS_PER_BOWLER
     const availableBowlers = bowlingPlayers.filter(name => {
       if (name === previousBowler) return false
-      return (inn.bowlerOversMap[name] || 0) < maxOvers
+      return (inn.bowlerOversMap?.[name] || 0) < maxOvers
     })
 
-    const previousBowlers = inn.bowlers.filter(b => b.name !== previousBowler)
+    const previousBowlers = (inn.bowlers || []).filter(b => b.name !== previousBowler)
 
     return (
       <div className="scoring-panel">
@@ -47,7 +47,7 @@ export default function Scoring() {
 
           <div className="bowler-select-grid">
             {availableBowlers.map(name => {
-              const overs = inn.bowlerOversMap[name] || 0
+              const overs = inn.bowlerOversMap?.[name] || 0
               const bowlerObj = inn.bowlers.find(b => b.name === name)
               return (
                 <button
@@ -70,7 +70,7 @@ export default function Scoring() {
               <label>Previous bowlers:</label>
               <div className="bowler-chips">
                 {previousBowlers.map((b) => {
-                  const overs = inn.bowlerOversMap[b.name] || 0
+                  const overs = inn.bowlerOversMap?.[b.name] || 0
                   const atCap = overs >= maxOvers
                   return (
                     <button
@@ -162,13 +162,13 @@ export default function Scoring() {
 
   // Get available new batsmen from roster
   const getAvailableBatsmen = () => {
-    const battingPlayers = activeRosters[battingKey]
+    const battingPlayers = (activeRosters[battingKey] || [])
       .filter(p => !p.substituted)
       .map(p => p.name)
-    const dismissed = inn.batsmen.filter(b => b.isOut).map(b => b.name)
+    const dismissed = (inn.batsmen || []).filter(b => b.isOut).map(b => b.name)
     const currentlyBatting = [
-      inn.batsmen[inn.activeBatsmanIndex]?.name,
-      inn.batsmen[inn.nonStrikerIndex]?.name,
+      (inn.batsmen || [])[inn.activeBatsmanIndex]?.name,
+      (inn.batsmen || [])[inn.nonStrikerIndex]?.name,
     ].filter(Boolean)
     return battingPlayers.filter(name =>
       !dismissed.includes(name) && !currentlyBatting.includes(name)

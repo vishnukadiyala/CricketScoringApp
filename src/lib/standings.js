@@ -17,7 +17,7 @@ export function extractTeamSummaries(matchState, team1Id, team2Id) {
 
   const oversPerInnings = matchState.oversPerInnings || 12
 
-  matchState.innings.forEach(inn => {
+  ;(matchState.innings || []).forEach(inn => {
     if (!inn || inn.totalRuns === undefined) return
 
     const completedOvers = inn.oversCompleted + inn.ballsInCurrentOver / BALLS_PER_OVER
