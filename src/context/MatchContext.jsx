@@ -16,6 +16,9 @@ const createBatsman = (name) => ({
   sixes: 0,
   isOut: false,
   dismissal: '',
+  fielder: null,
+  fielder2: null,
+  isDirectHit: false,
 })
 
 const createBowler = (name) => ({
@@ -183,7 +186,7 @@ export function matchReducer(state, action) {
 
     case 'SCORE_BALL': {
       // eslint-disable-next-line no-unused-vars
-      const { runType, runs, extraType, wicket, dismissalType, newBatsman } = action
+      const { runType, runs, extraType, wicket, dismissalType, newBatsman, fielder: actionFielder, fielder2: actionFielder2, isDirectHit: actionIsDirectHit } = action
       // Save snapshot for undo (keep last 20 max)
       const snapshot = {
         innings: structuredClone(state.innings),
@@ -267,6 +270,9 @@ export function matchReducer(state, action) {
         const dismissedBatsman = inn.batsmen[dismissedIdx]
         dismissedBatsman.isOut = true
         dismissedBatsman.dismissal = dismissalType
+        dismissedBatsman.fielder = actionFielder || null
+        dismissedBatsman.fielder2 = actionFielder2 || null
+        dismissedBatsman.isDirectHit = actionIsDirectHit || false
         ballDisplay = 'W'
 
         inn.fallOfWickets.push({
@@ -274,6 +280,7 @@ export function matchReducer(state, action) {
           runs: inn.totalRuns,
           wickets: inn.wickets,
           overs: `${inn.oversCompleted}.${inn.ballsInCurrentOver + (isLegalDelivery ? 1 : 0)}`,
+          bowlerName: bowler.name,
         })
 
         if (inn.wickets < MAX_WICKETS && newBatsman) {

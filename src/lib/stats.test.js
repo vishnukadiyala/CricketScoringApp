@@ -18,6 +18,7 @@ import {
   getBestBowlingFigures,
   getMostMaidens,
   computeFieldingStats,
+  computeTeamFieldingStats,
   computeTeamStats,
   getHighestTeamTotals,
   getLowestTeamTotals,
@@ -781,7 +782,7 @@ describe('computeParticipation', () => {
 
 // ─── Fielding Tests ─────────────────────────────────────────────
 
-describe('computeFieldingStats', () => {
+describe('computeTeamFieldingStats', () => {
   it('counts dismissal types per team', () => {
     const data = [
       makeMatchData(
@@ -797,7 +798,7 @@ describe('computeFieldingStats', () => {
       ),
     ]
 
-    const fielding = computeFieldingStats(data)
+    const fielding = computeTeamFieldingStats(data)
     const beta = fielding.find(f => f.teamId === 'team_2')
 
     expect(beta.catches).toBe(1)

@@ -23,6 +23,7 @@ import {
   getMostMaidens,
   getMostExpensiveOvers,
   computeFieldingStats,
+  computeTeamFieldingStats,
   computeTeamStats,
   getHighestTeamTotals,
   getLowestTeamTotals,
@@ -80,6 +81,7 @@ export default function StatsPage() {
 
   const battingStats = useMemo(() => computeBattingLeaderboard(filteredData, teams), [filteredData, teams])
   const bowlingStats = useMemo(() => computeBowlingLeaderboard(filteredData), [filteredData])
+  const fieldingStats = useMemo(() => computeFieldingStats(filteredData), [filteredData])
 
   const completedCount = allMatchData.length
   if (completedCount === 0) {
@@ -148,6 +150,7 @@ export default function StatsPage() {
           <BattingTab
             battingStats={battingStats}
             bowlingStats={bowlingStats}
+            fieldingStats={fieldingStats}
             onPlayerClick={setPlayerModal}
           />
         )}
@@ -155,12 +158,13 @@ export default function StatsPage() {
           <BowlingTab
             bowlingStats={bowlingStats}
             battingStats={battingStats}
+            fieldingStats={fieldingStats}
             matchData={filteredData}
             onPlayerClick={setPlayerModal}
           />
         )}
         {activeTab === 'fielding' && (
-          <FieldingTab matchData={filteredData} />
+          <FieldingTab matchData={filteredData} battingStats={battingStats} bowlingStats={bowlingStats} onPlayerClick={setPlayerModal} />
         )}
         {activeTab === 'teams' && (
           <TeamsTab matchData={filteredData} teams={teams} />
@@ -214,7 +218,7 @@ function PlayerName({ player, onClick }) {
 
 // ─── BATTING TAB ────────────────────────────────────────────────
 
-function BattingTab({ battingStats, bowlingStats, onPlayerClick }) {
+function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }) {
   const [subView, setSubView] = useState('orange-cap')
 
   const orangeCap = useMemo(() => getOrangeCapList(battingStats), [battingStats])
@@ -229,7 +233,8 @@ function BattingTab({ battingStats, bowlingStats, onPlayerClick }) {
   const handlePlayerClick = (p) => {
     const batStat = battingStats.find(b => b.name === p.name && b.teamId === p.teamId)
     const bowlStat = bowlingStats.find(b => b.name === p.name && b.teamId === p.teamId)
-    onPlayerClick({ batting: batStat, bowling: bowlStat, name: p.name, team: p.team, teamId: p.teamId })
+    const fieldStat = (fieldingStats || []).find(f => f.name === p.name && f.teamId === p.teamId)
+    onPlayerClick({ batting: batStat, bowling: bowlStat, fielding: fieldStat, name: p.name, team: p.team, teamId: p.teamId })
   }
 
   const subViews = [
@@ -539,7 +544,7 @@ function BattingTab({ battingStats, bowlingStats, onPlayerClick }) {
 
 // ─── BOWLING TAB ────────────────────────────────────────────────
 
-function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
+function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPlayerClick }) {
   const [subView, setSubView] = useState('purple-cap')
 
   const purpleCap = useMemo(() => getPurpleCapList(bowlingStats), [bowlingStats])
@@ -554,7 +559,8 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
   const handlePlayerClick = (p) => {
     const batStat = battingStats.find(b => b.name === p.name && b.teamId === p.teamId)
     const bowlStat = bowlingStats.find(b => b.name === p.name && b.teamId === p.teamId)
-    onPlayerClick({ batting: batStat, bowling: bowlStat, name: p.name, team: p.team, teamId: p.teamId })
+    const fieldStat = (fieldingStats || []).find(f => f.name === p.name && f.teamId === p.teamId)
+    onPlayerClick({ batting: batStat, bowling: bowlStat, fielding: fieldStat, name: p.name, team: p.team, teamId: p.teamId })
   }
 
   const subViews = [
@@ -859,13 +865,128 @@ function BowlingTab({ bowlingStats, battingStats, matchData, onPlayerClick }) {
 
 // ─── FIELDING TAB ───────────────────────────────────────────────
 
-function FieldingTab({ matchData }) {
+function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
+  const [subView, setSubView] = useState('total')
   const fieldingStats = useMemo(() => computeFieldingStats(matchData), [matchData])
+  const teamFieldingStats = useMemo(() => computeTeamFieldingStats(matchData), [matchData])
 
+  const handlePlayerClick = (p) => {
+    const batStat = battingStats.find(b => b.name === p.name && b.teamId === p.teamId)
+    const bowlStat = bowlingStats.find(b => b.name === p.name && b.teamId === p.teamId)
+    const fieldStat = fieldingStats.find(f => f.name === p.name && f.teamId === p.teamId)
+    onPlayerClick({ batting: batStat, bowling: bowlStat, fielding: fieldStat, name: p.name, team: p.team, teamId: p.teamId })
+  }
+
+  const subViews = [
+    { id: 'total', label: 'Total Dismissals' },
+    { id: 'catches', label: 'Catches' },
+    { id: 'runouts', label: 'Run Outs' },
+    { id: 'stumpings', label: 'Stumpings' },
+    { id: 'teams', label: 'By Team' },
+  ]
+
+  const getFilteredStats = () => {
+    switch (subView) {
+      case 'catches': return [...fieldingStats].filter(p => p.catches > 0).sort((a, b) => b.catches - a.catches)
+      case 'runouts': return [...fieldingStats].filter(p => p.runOuts > 0).sort((a, b) => b.runOuts - a.runOuts)
+      case 'stumpings': return [...fieldingStats].filter(p => p.stumpings > 0).sort((a, b) => b.stumpings - a.stumpings)
+      default: return fieldingStats
+    }
+  }
+
+  if (fieldingStats.length === 0 && subView !== 'teams') {
+    return (
+      <>
+        <div className="stats-sub-tabs">
+          {subViews.map(sv => (
+            <button
+              key={sv.id}
+              className={`chip ${subView === sv.id ? 'active' : ''}`}
+              onClick={() => setSubView(sv.id)}
+            >
+              {sv.label}
+            </button>
+          ))}
+        </div>
+        {subView === 'teams' ? (
+          <TeamFieldingSection teamFieldingStats={teamFieldingStats} />
+        ) : (
+          <div className="card">
+            <h2>Fielding Leaderboard</h2>
+            <p className="subtitle">No individual fielder data available yet. Fielder credits are captured for new matches.</p>
+          </div>
+        )}
+      </>
+    )
+  }
+
+  const filtered = getFilteredStats()
+
+  return (
+    <>
+      <div className="stats-sub-tabs">
+        {subViews.map(sv => (
+          <button
+            key={sv.id}
+            className={`chip ${subView === sv.id ? 'active' : ''}`}
+            onClick={() => setSubView(sv.id)}
+          >
+            {sv.label}
+          </button>
+        ))}
+      </div>
+
+      {subView === 'teams' ? (
+        <TeamFieldingSection teamFieldingStats={teamFieldingStats} />
+      ) : (
+        <div className="card">
+          <h2>
+            {subView === 'total' && 'Fielding Leaderboard — Total Dismissals'}
+            {subView === 'catches' && 'Most Catches'}
+            {subView === 'runouts' && 'Most Run Outs'}
+            {subView === 'stumpings' && 'Most Stumpings'}
+          </h2>
+          <div className="table-wrapper">
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th className="col-pos">#</th>
+                  <th className="col-name">Player</th>
+                  {subView === 'total' && <th className="col-stat">Tot</th>}
+                  <th className="col-stat">Ct</th>
+                  <th className="col-stat">RO</th>
+                  {subView !== 'stumpings' && <th className="col-stat">DH</th>}
+                  <th className="col-stat">St</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.slice(0, 20).map((p, i) => (
+                  <tr key={`${p.teamId}-${p.name}`} className={rankClass(i)}>
+                    <td className="col-pos">{i + 1}</td>
+                    <td className="col-name">
+                      <PlayerName player={p} onClick={handlePlayerClick} />
+                      <span className="player-team-badge">{p.team}</span>
+                    </td>
+                    {subView === 'total' && <td className="col-stat stat-highlight">{p.totalDismissals}</td>}
+                    <td className="col-stat">{p.catches}</td>
+                    <td className="col-stat">{p.runOuts}</td>
+                    {subView !== 'stumpings' && <td className="col-stat">{p.directHitRunOuts}</td>}
+                    <td className="col-stat">{p.stumpings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function TeamFieldingSection({ teamFieldingStats }) {
   return (
     <div className="card">
       <h2>Fielding Summary by Team</h2>
-      <p className="subtitle">Individual fielder credits are not tracked in the current data model</p>
       <div className="table-wrapper">
         <table className="stats-table">
           <thead>
@@ -879,7 +1000,7 @@ function FieldingTab({ matchData }) {
             </tr>
           </thead>
           <tbody>
-            {fieldingStats.map((t, i) => (
+            {teamFieldingStats.map((t, i) => (
               <tr key={t.teamId} className={rankClass(i)}>
                 <td className="col-name">{t.team}</td>
                 <td className="col-stat">{t.catches}</td>
@@ -1278,7 +1399,7 @@ function QualifierRow({ label, value, current, required, unit, formatFn }) {
 }
 
 function PlayerModal({ player, onClose }) {
-  const { batting, bowling, name, team } = player
+  const { batting, bowling, fielding, name, team } = player
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1430,6 +1551,19 @@ function PlayerModal({ player, onClose }) {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {fielding && fielding.totalDismissals > 0 && (
+          <div className="modal-section">
+            <h3>Fielding</h3>
+            <div className="modal-stats-grid">
+              <div className="modal-stat"><span className="modal-stat-value">{fielding.catches}</span><span className="modal-stat-label">Catches</span></div>
+              <div className="modal-stat"><span className="modal-stat-value">{fielding.runOuts}</span><span className="modal-stat-label">Run Outs</span></div>
+              <div className="modal-stat"><span className="modal-stat-value">{fielding.directHitRunOuts}</span><span className="modal-stat-label">Direct Hits</span></div>
+              <div className="modal-stat"><span className="modal-stat-value">{fielding.stumpings}</span><span className="modal-stat-label">Stumpings</span></div>
+              <div className="modal-stat"><span className="modal-stat-value">{fielding.totalDismissals}</span><span className="modal-stat-label">Total</span></div>
+            </div>
           </div>
         )}
       </div>

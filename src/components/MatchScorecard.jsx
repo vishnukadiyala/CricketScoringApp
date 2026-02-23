@@ -1,6 +1,7 @@
 import { getBallClass } from '../lib/ballDisplay'
 import { formatBowlerOvers, computeEconomy, ballsToDecimalOvers } from '../lib/overs'
 import { BALLS_PER_OVER } from '../lib/constants'
+import { formatDismissal } from '../lib/dismissalText'
 
 export default function MatchScorecard({ matchState }) {
   if (!matchState) return null
@@ -20,6 +21,12 @@ export default function MatchScorecard({ matchState }) {
     const mins = Math.floor(totalSecs / 60)
     const secs = totalSecs % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  function getBowlerForDismissal(inn, batsmanName) {
+    if (!inn || !inn.fallOfWickets) return null
+    const fow = inn.fallOfWickets.find(f => f.batsmanName === batsmanName)
+    return fow?.bowlerName || null
   }
 
   return (
@@ -62,7 +69,7 @@ export default function MatchScorecard({ matchState }) {
                   {(inn.batsmen || []).map((bat, bIdx) => (
                     <tr key={bIdx} className={bat.isOut ? 'out' : 'not-out'}>
                       <td className="col-name">{bat.name}</td>
-                      <td className="col-dismissal">{bat.isOut ? bat.dismissal : 'not out'}</td>
+                      <td className="col-dismissal">{bat.isOut ? formatDismissal(bat, getBowlerForDismissal(inn, bat.name)) : 'not out'}</td>
                       <td className="col-stat">{bat.runs}</td>
                       <td className="col-stat">{bat.balls}</td>
                       <td className="col-stat">{bat.fours}</td>

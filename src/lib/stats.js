@@ -637,12 +637,72 @@ export function getMostExpensiveOvers(matchData) {
 // ─── Fielding Stats ─────────────────────────────────────────────
 
 /**
- * Compute fielding stats from fall-of-wickets dismissal data.
- * NOTE: Current data model only stores dismissal type, not fielder name.
- * We can count dismissal types per innings but can't attribute to fielders.
- * This returns team-level fielding stats.
+ * Compute player-level fielding stats from batsman dismissal data.
+ * Returns array of player fielding stat objects sorted by totalDismissals desc.
  */
 export function computeFieldingStats(matchData) {
+  const playerMap = {}
+
+  matchData.forEach(({ matchMeta, matchState }) => {
+    if (!matchState || !matchState.innings) return
+
+    matchState.innings.forEach(inn => {
+      if (!inn) return
+      const bowlingTeamKey = getTeamKey(matchState, inn.bowlingTeam)
+      const bowlingTeamId = matchMeta[`${bowlingTeamKey}Id`]
+
+      ;(inn.batsmen || []).forEach(bat => {
+        if (!bat || !bat.isOut || !bat.fielder) return
+
+        const creditFielder = (fielderName, type) => {
+          const key = `${bowlingTeamId}::${fielderName}`
+          if (!playerMap[key]) {
+            playerMap[key] = {
+              name: fielderName,
+              teamId: bowlingTeamId,
+              team: inn.bowlingTeam,
+              catches: 0,
+              runOuts: 0,
+              directHitRunOuts: 0,
+              stumpings: 0,
+              totalDismissals: 0,
+            }
+          }
+          const p = playerMap[key]
+          if (type === 'catch') p.catches++
+          if (type === 'runOut') {
+            p.runOuts++
+            if (bat.isDirectHit) p.directHitRunOuts++
+          }
+          if (type === 'stumping') p.stumpings++
+          p.totalDismissals++
+        }
+
+        switch (bat.dismissal) {
+          case 'caught':
+            creditFielder(bat.fielder, 'catch')
+            break
+          case 'runOut':
+            creditFielder(bat.fielder, 'runOut')
+            if (bat.fielder2) {
+              creditFielder(bat.fielder2, 'runOut')
+            }
+            break
+          case 'stumped':
+            creditFielder(bat.fielder, 'stumping')
+            break
+        }
+      })
+    })
+  })
+
+  return Object.values(playerMap).sort((a, b) => b.totalDismissals - a.totalDismissals)
+}
+
+/**
+ * Legacy team-level fielding stats (kept for backwards compatibility).
+ */
+export function computeTeamFieldingStats(matchData) {
   const teamMap = {}
 
   matchData.forEach(({ matchMeta, matchState }) => {

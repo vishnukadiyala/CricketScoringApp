@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMatch } from '../context/MatchContext'
 import { MAX_OVERS_PER_BOWLER, MAX_WICKETS } from '../lib/constants'
+import { formatDismissal } from '../lib/dismissalText'
 
 export default function Scoring() {
   const {
@@ -17,6 +18,14 @@ export default function Scoring() {
   const [extraRuns, setExtraRuns] = useState(0)
   const [newBowlerName, setNewBowlerName] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [fielder, setFielder] = useState('')
+  const [fielder2, setFielder2] = useState('')
+  const [isDirectHit, setIsDirectHit] = useState(false)
+  const [wicketStep, setWicketStep] = useState(1)
+  const [customFielder, setCustomFielder] = useState('')
+  const [showCustomFielder, setShowCustomFielder] = useState(false)
+  const [customFielder2, setCustomFielder2] = useState('')
+  const [showCustomFielder2, setShowCustomFielder2] = useState(false)
 
   const inn = innings?.[currentInnings]
   if (!inn) return null
@@ -151,6 +160,22 @@ export default function Scoring() {
     })
   }
 
+  const resetWicketState = () => {
+    setShowWicket(false)
+    setWicketType('')
+    setNewBatsman('')
+    setRunOutTarget('striker')
+    setRunOutRuns(0)
+    setFielder('')
+    setFielder2('')
+    setIsDirectHit(false)
+    setWicketStep(1)
+    setCustomFielder('')
+    setShowCustomFielder(false)
+    setCustomFielder2('')
+    setShowCustomFielder2(false)
+  }
+
   const scoreWicket = () => {
     if (!wicketType) return
     if (inn.wickets < MAX_WICKETS - 1 && !newBatsman) return
@@ -162,13 +187,20 @@ export default function Scoring() {
         dismissalType: wicketType,
         newBatsman: inn.wickets < MAX_WICKETS - 1 ? newBatsman : null,
         runOutBatsman: wicketType === 'runOut' ? runOutTarget : undefined,
+        fielder: fielder || undefined,
+        fielder2: fielder2 || undefined,
+        isDirectHit: isDirectHit || undefined,
       })
-      setShowWicket(false)
-      setWicketType('')
-      setNewBatsman('')
-      setRunOutTarget('striker')
-      setRunOutRuns(0)
+      resetWicketState()
     })
+  }
+
+  const needsFielder = (type) => ['caught', 'runOut', 'stumped'].includes(type)
+
+  const getFieldingXI = () => {
+    return (activeRosters[bowlingKey] || [])
+      .filter(p => !p.substituted)
+      .map(p => p.name)
   }
 
   const handleUndo = () => {
@@ -253,34 +285,75 @@ export default function Scoring() {
     )
   }
 
-  // Wicket modal
+  // Wicket modal — step-based flow
   if (showWicket) {
     const availableBatsmen = getAvailableBatsmen()
+    const fieldingXI = getFieldingXI()
+    const bowler = inn.bowlers[inn.currentBowlerIndex]
+    const bowlerName = bowler?.name || ''
+    const totalSteps = needsFielder(wicketType) ? 4 : (wicketType === 'runOut' ? 3 : 2)
+    const isLastWicket = inn.wickets >= MAX_WICKETS - 1
+
+    // Step navigation helpers
+    const advanceAfterType = (type) => {
+      setWicketType(type)
+      if (type === 'runOut') {
+        setWicketStep(2) // run out batter selection
+      } else if (needsFielder(type)) {
+        setWicketStep(3) // fielder selection
+      } else {
+        setWicketStep(4) // confirm (bowled/lbw/hitWicket skip fielder)
+      }
+    }
+
+    // Build summary text for confirmation
+    const getSummaryText = () => {
+      if (!wicketType) return ''
+      const dismissedName = wicketType === 'runOut'
+        ? (runOutTarget === 'nonStriker' ? inn.batsmen[inn.nonStrikerIndex]?.name : inn.batsmen[inn.activeBatsmanIndex]?.name)
+        : inn.batsmen[inn.activeBatsmanIndex]?.name
+      const fakeBatsman = { dismissal: wicketType, fielder: fielder || null, fielder2: fielder2 || null, isDirectHit }
+      return `${dismissedName} — ${formatDismissal(fakeBatsman, bowlerName)}`
+    }
 
     return (
       <div className="scoring-panel">
         <div className="card wicket-card">
           <h3>Wicket!</h3>
+
+          {/* Step indicator */}
+          <div className="wicket-step-indicator">
+            {[1, 2, 3, 4].slice(0, wicketType === 'runOut' ? 4 : (needsFielder(wicketType) ? 4 : (wicketType ? 2 : 1))).map(s => (
+              <span key={s} className={`step-dot ${wicketStep >= s ? 'active' : ''} ${wicketStep === s ? 'current' : ''}`} />
+            ))}
+          </div>
+
           {lastBallWasNoBall && (
             <div className="free-hit-notice">
               FREE HIT — Only Run Out is allowed
             </div>
           )}
-          <div className="form-group">
-            <label>Dismissal Type</label>
-            <div className="btn-group wicket-types">
-              {wicketTypes.map((type) => (
-                <button
-                  key={type}
-                  className={`btn ${wicketType === type ? 'btn-danger' : 'btn-outline'}`}
-                  onClick={() => setWicketType(type)}
-                >
-                  {wicketTypeLabels[type]}
-                </button>
-              ))}
+
+          {/* Step 1: Dismissal type */}
+          {wicketStep === 1 && (
+            <div className="form-group">
+              <label>Dismissal Type</label>
+              <div className="btn-group wicket-types">
+                {wicketTypes.map((type) => (
+                  <button
+                    key={type}
+                    className={`btn ${wicketType === type ? 'btn-danger' : 'btn-outline'}`}
+                    onClick={() => advanceAfterType(type)}
+                  >
+                    {wicketTypeLabels[type]}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          {wicketType === 'runOut' && (
+          )}
+
+          {/* Step 2: Run out batter selection (only for runOut) */}
+          {wicketStep === 2 && wicketType === 'runOut' && (
             <>
               <div className="form-group">
                 <label>Who was run out?</label>
@@ -313,36 +386,241 @@ export default function Scoring() {
                   ))}
                 </div>
               </div>
+              <button
+                className="btn btn-primary btn-block"
+                onClick={() => setWicketStep(3)}
+              >
+                Next — Select Fielder
+              </button>
             </>
           )}
-          {inn.wickets < MAX_WICKETS - 1 && wicketType && (
-            <div className="form-group">
-              <label>New Batsman</label>
-              <div className="new-batsman-grid">
-                {availableBatsmen.map(name => (
-                  <button
-                    key={name}
-                    className={`chip ${newBatsman === name ? 'active' : ''}`}
-                    onClick={() => setNewBatsman(name)}
-                  >
-                    {name}
-                  </button>
-                ))}
+
+          {/* Step 3: Fielder selection (caught/runOut/stumped) */}
+          {wicketStep === 3 && needsFielder(wicketType) && (
+            <>
+              {wicketType === 'caught' && (
+                <div className="form-group">
+                  <label>Who took the catch?</label>
+                  <div className="fielder-grid">
+                    {fieldingXI.map(name => (
+                      <button
+                        key={name}
+                        className={`fielder-btn ${fielder === name && !showCustomFielder ? 'selected' : ''}`}
+                        onClick={() => { setFielder(name); setShowCustomFielder(false); setCustomFielder('') }}
+                      >
+                        {name}
+                        {name === bowlerName && <span className="fielder-label">(c & b)</span>}
+                      </button>
+                    ))}
+                    <button
+                      className={`fielder-btn fielder-btn-custom ${showCustomFielder ? 'selected' : ''}`}
+                      onClick={() => { setShowCustomFielder(true); setFielder(customFielder) }}
+                    >
+                      Emergency Sub
+                    </button>
+                  </div>
+                  {showCustomFielder && (
+                    <input
+                      type="text"
+                      className="custom-fielder-input"
+                      placeholder="Type fielder name..."
+                      value={customFielder}
+                      autoFocus
+                      onChange={e => { setCustomFielder(e.target.value); setFielder(e.target.value) }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {wicketType === 'runOut' && (
+                <>
+                  <div className="form-group">
+                    <label>Fielder who effected the run out</label>
+                    <div className="fielder-grid">
+                      {fieldingXI.map(name => (
+                        <button
+                          key={name}
+                          className={`fielder-btn ${fielder === name && !showCustomFielder ? 'selected' : ''}`}
+                          onClick={() => {
+                            setFielder(name)
+                            setShowCustomFielder(false)
+                            setCustomFielder('')
+                            if (fielder2 === name) setFielder2('')
+                          }}
+                        >
+                          {name}
+                        </button>
+                      ))}
+                      <button
+                        className={`fielder-btn fielder-btn-custom ${showCustomFielder ? 'selected' : ''}`}
+                        onClick={() => { setShowCustomFielder(true); setFielder(customFielder) }}
+                      >
+                        Emergency Sub
+                      </button>
+                    </div>
+                    {showCustomFielder && (
+                      <input
+                        type="text"
+                        className="custom-fielder-input"
+                        placeholder="Type fielder name..."
+                        value={customFielder}
+                        autoFocus
+                        onChange={e => {
+                          setCustomFielder(e.target.value)
+                          setFielder(e.target.value)
+                          if (fielder2 === e.target.value) setFielder2('')
+                        }}
+                      />
+                    )}
+                  </div>
+                  {fielder && (
+                    <>
+                      <div className="form-group">
+                        <label className="direct-hit-toggle">
+                          <input
+                            type="checkbox"
+                            checked={isDirectHit}
+                            onChange={e => setIsDirectHit(e.target.checked)}
+                          />
+                          <span>Direct hit</span>
+                        </label>
+                      </div>
+                      <div className="form-group">
+                        <label>Assist fielder (optional)</label>
+                        <div className="fielder-grid">
+                          <button
+                            className={`fielder-btn ${fielder2 === '' && !showCustomFielder2 ? 'selected' : ''}`}
+                            onClick={() => { setFielder2(''); setShowCustomFielder2(false); setCustomFielder2('') }}
+                          >
+                            None
+                          </button>
+                          {fieldingXI.filter(n => n !== fielder).map(name => (
+                            <button
+                              key={name}
+                              className={`fielder-btn ${fielder2 === name && !showCustomFielder2 ? 'selected' : ''}`}
+                              onClick={() => { setFielder2(name); setShowCustomFielder2(false); setCustomFielder2('') }}
+                            >
+                              {name}
+                            </button>
+                          ))}
+                          <button
+                            className={`fielder-btn fielder-btn-custom ${showCustomFielder2 ? 'selected' : ''}`}
+                            onClick={() => { setShowCustomFielder2(true); setFielder2(customFielder2) }}
+                          >
+                            Emergency Sub
+                          </button>
+                        </div>
+                        {showCustomFielder2 && (
+                          <input
+                            type="text"
+                            className="custom-fielder-input"
+                            placeholder="Type assist fielder name..."
+                            value={customFielder2}
+                            autoFocus
+                            onChange={e => { setCustomFielder2(e.target.value); setFielder2(e.target.value) }}
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {wicketType === 'stumped' && (
+                <div className="form-group">
+                  <label>Select the wicketkeeper who made the stumping</label>
+                  <div className="fielder-grid">
+                    {fieldingXI.map(name => (
+                      <button
+                        key={name}
+                        className={`fielder-btn ${fielder === name && !showCustomFielder ? 'selected' : ''}`}
+                        onClick={() => { setFielder(name); setShowCustomFielder(false); setCustomFielder('') }}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                    <button
+                      className={`fielder-btn fielder-btn-custom ${showCustomFielder ? 'selected' : ''}`}
+                      onClick={() => { setShowCustomFielder(true); setFielder(customFielder) }}
+                    >
+                      Emergency Sub
+                    </button>
+                  </div>
+                  {showCustomFielder && (
+                    <input
+                      type="text"
+                      className="custom-fielder-input"
+                      placeholder="Type fielder name..."
+                      value={customFielder}
+                      autoFocus
+                      onChange={e => { setCustomFielder(e.target.value); setFielder(e.target.value) }}
+                    />
+                  )}
+                </div>
+              )}
+
+              <button
+                className="btn btn-primary btn-block"
+                disabled={!fielder}
+                onClick={() => setWicketStep(4)}
+              >
+                Next — Confirm
+              </button>
+            </>
+          )}
+
+          {/* Step 4: Confirm + New batsman */}
+          {wicketStep === 4 && (
+            <>
+              <div className="wicket-summary">
+                <div className="wicket-summary-label">OUT</div>
+                <div className="wicket-summary-text">{getSummaryText()}</div>
               </div>
-            </div>
+
+              {!isLastWicket && (
+                <div className="form-group">
+                  <label>New Batsman</label>
+                  <div className="new-batsman-grid">
+                    {availableBatsmen.map(name => (
+                      <button
+                        key={name}
+                        className={`chip ${newBatsman === name ? 'active' : ''}`}
+                        onClick={() => setNewBatsman(name)}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                className="btn btn-danger btn-block"
+                onClick={scoreWicket}
+                disabled={(!isLastWicket && !newBatsman) || isProcessing}
+              >
+                Confirm Wicket
+              </button>
+            </>
           )}
-          {wicketType && (
-            <button
-              className="btn btn-danger btn-block"
-              onClick={scoreWicket}
-              disabled={(inn.wickets < MAX_WICKETS - 1 && !newBatsman) || isProcessing}
-            >
-              Confirm Wicket
+
+          {/* Back / Cancel buttons */}
+          <div className="btn-group" style={{ marginTop: 8 }}>
+            {wicketStep > 1 && (
+              <button className="btn btn-outline btn-block" onClick={() => {
+                if (wicketStep === 4 && !needsFielder(wicketType) && wicketType !== 'runOut') {
+                  setWicketStep(1)
+                } else {
+                  setWicketStep(wicketStep - 1)
+                }
+              }}>
+                Back
+              </button>
+            )}
+            <button className="btn btn-outline btn-block" onClick={resetWicketState}>
+              Cancel
             </button>
-          )}
-          <button className="btn btn-outline btn-block" onClick={() => { setShowWicket(false); setWicketType(''); setNewBatsman(''); setRunOutRuns(0) }}>
-            Cancel
-          </button>
+          </div>
         </div>
       </div>
     )
