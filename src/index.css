@@ -2656,6 +2656,25 @@ button:focus-visible {
   color: var(--text-muted);
 }
 
+.player-account-actions {
+  flex-shrink: 0;
+}
+
+.role-select {
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* ===== SQUAD MANAGEMENT ===== */
 .squad-player-list {
   display: flex;

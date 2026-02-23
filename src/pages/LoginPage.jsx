@@ -69,7 +69,7 @@ export default function LoginPage() {
         const snapshot = await get(ref(db, `users/${cred.user.uid}`))
         if (!snapshot.exists()) {
           const usersSnapshot = await get(ref(db, 'users'))
-          const role = !usersSnapshot.exists() ? 'organizer' : 'player'
+          const role = !usersSnapshot.exists() ? 'owner' : 'player'
           await set(ref(db, `users/${cred.user.uid}`), {
             name: storedEmail.split('@')[0],
             email: storedEmail,
@@ -113,7 +113,7 @@ export default function LoginPage() {
           return
         }
         const cred = await createUserWithEmailAndPassword(auth, email, password)
-        const role = isFirstUser ? 'organizer' : 'player'
+        const role = isFirstUser ? 'owner' : 'player'
         await set(ref(db, `users/${cred.user.uid}`), {
           name: name.trim(),
           email,
@@ -163,7 +163,7 @@ export default function LoginPage() {
           </h2>
           {mode === 'register' && isFirstUser && (
             <div className="auth-hint">
-              First account gets <strong>Organizer</strong> access.
+              First account gets <strong>Owner</strong> access.
             </div>
           )}
           <form onSubmit={handleSubmit}>

@@ -4,12 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { DEFAULT_OVERS_PER_INNINGS, MIN_SQUAD_SIZE, MAX_SQUAD_SIZE } from '../lib/constants'
 import { clearTournament, loadMatch } from '../lib/storage'
-import { db, ref, onValue, off } from '../lib/firebase'
+import { db, ref, set, onValue, off } from '../lib/firebase'
 import { getActivePlayerNames, countActivePlayers } from '../lib/squadUtils'
 
 export default function AdminPage() {
   const { teams, matches, name, oversPerInnings, squadChanges, dispatch, getTeamName } = useTournament()
-  const { isAuthEnabled, userName } = useAuth()
+  const { isAuthEnabled, isOwner, userName, user } = useAuth()
   const navigate = useNavigate()
 
   const [tournamentName, setTournamentName] = useState(name || 'NCC Edition 5')
@@ -633,22 +633,42 @@ export default function AdminPage() {
           </button>
         )}
 
-        {/* Registered Players */}
+        {/* Registered Players & Role Management */}
         {isAuthEnabled && registeredUsers.length > 0 && (
           <div className="card">
             <h2>Registered Accounts</h2>
             <div className="player-account-list">
-              {registeredUsers.map(u => (
-                <div key={u.uid} className="player-account-row">
-                  <div className="player-account-info">
-                    <span className="player-account-name">{u.name}</span>
-                    <span className="player-account-email">{u.email}</span>
+              {registeredUsers.map(u => {
+                const isSelf = user && u.uid === user.uid
+                const isUserOwner = u.role === 'owner'
+                const canChangeRole = isOwner && !isSelf && !isUserOwner
+                return (
+                  <div key={u.uid} className="player-account-row">
+                    <div className="player-account-info">
+                      <span className="player-account-name">{u.name}{isSelf ? ' (you)' : ''}</span>
+                      <span className="player-account-email">{u.email}</span>
+                    </div>
+                    <div className="player-account-actions">
+                      {canChangeRole ? (
+                        <select
+                          className="role-select"
+                          value={u.role}
+                          onChange={(e) => {
+                            set(ref(db, `users/${u.uid}/role`), e.target.value)
+                          }}
+                        >
+                          <option value="player">player</option>
+                          <option value="organizer">organizer</option>
+                        </select>
+                      ) : (
+                        <span className={`status-badge ${isUserOwner ? 'completed' : u.role === 'organizer' ? 'live' : 'upcoming'}`}>
+                          {u.role}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className={`status-badge ${u.role === 'organizer' ? 'live' : 'upcoming'}`}>
-                    {u.role}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
