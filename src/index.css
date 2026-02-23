@@ -2154,6 +2154,52 @@ button:focus-visible {
   margin-top: 4px;
 }
 
+/* ===== SYNC STATUS ===== */
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sync-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sync-status--live .sync-status__dot {
+  background: var(--success);
+}
+
+.sync-status--live .sync-status__label {
+  color: var(--success);
+}
+
+.sync-status--connecting .sync-status__dot {
+  background: #f59e0b;
+  animation: sync-pulse 1.2s ease-in-out infinite;
+}
+
+.sync-status--connecting .sync-status__label {
+  color: #f59e0b;
+}
+
+.sync-status--offline .sync-status__dot {
+  background: var(--danger);
+}
+
+.sync-status--offline .sync-status__label {
+  color: var(--danger);
+}
+
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* ===== RESPONSIVE — wider layout for dashboard on desktop ===== */
 @media (min-width: 960px) {
   .app {

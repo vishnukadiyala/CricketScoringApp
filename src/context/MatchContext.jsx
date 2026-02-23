@@ -1,9 +1,10 @@
-import { createContext, useContext, useReducer, useEffect, useRef } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react'
 import {
   MAX_OVERS_PER_BOWLER, MAX_WICKETS, BALLS_PER_OVER,
   FOLLOW_ON_THRESHOLD, MAX_UNDO_HISTORY,
   SUPER_OVER_WICKETS,
 } from '../lib/constants'
+import { useFirebaseSync } from '../lib/useFirebaseSync'
 
 const MatchContext = createContext()
 
@@ -358,6 +359,9 @@ export function matchReducer(state, action) {
       const inningsEnded = allOut || oversFinished || targetChased4th
 
       if (inningsEnded) {
+        // Stamp end time for duration tracking
+        inn.endTime = Date.now()
+
         // Update cumulative scores and boundaries
         newCumulativeScores[battingTeamKey] = state.cumulativeScores[battingTeamKey] + inn.totalRuns
         newCumulativeBoundaries[battingTeamKey] = {
@@ -713,6 +717,14 @@ export function matchReducer(state, action) {
       return { ...initialState }
     }
 
+    case 'SYNC_FROM_REMOTE': {
+      const remote = action.payload
+      if (!remote || !remote.phase || !remote.innings) return state
+      // eslint-disable-next-line no-unused-vars
+      const { _lastWriteTime, ...cleaned } = remote
+      return { ...initialState, ...cleaned, ballHistory: [], superOverHistory: [] }
+    }
+
     default:
       return state
   }
@@ -800,6 +812,25 @@ export function MatchProvider({ children, matchId, onMatchComplete, initialConfi
   useEffect(() => {
     saveState(state, storageKey)
   }, [state, storageKey])
+
+  // Firebase sync
+  const onRemoteUpdate = useCallback((data) => {
+    dispatch({ type: 'SYNC_FROM_REMOTE', payload: data })
+  }, [])
+
+  const filterBeforeWrite = useCallback((s) => {
+    if (s.phase === 'setup') return null
+    // eslint-disable-next-line no-unused-vars
+    const { ballHistory, superOverHistory, _lastWriteTime, ...rest } = s
+    return rest
+  }, [])
+
+  useFirebaseSync(
+    matchId ? `/matches/${matchId}` : null,
+    state,
+    onRemoteUpdate,
+    { debounceMs: 300, filterBeforeWrite, enabled: Boolean(matchId) }
+  )
 
   // Fire onMatchComplete when match ends
   const completeFiredRef = useRef(false)

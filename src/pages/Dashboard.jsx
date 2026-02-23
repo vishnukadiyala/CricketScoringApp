@@ -3,6 +3,7 @@ import { useTournament } from '../context/TournamentContext'
 import PointsTable from '../components/PointsTable'
 import MatchSchedule from '../components/MatchSchedule'
 import SpiritTracker from '../components/SpiritTracker'
+import SyncStatus from '../components/SyncStatus'
 
 export default function Dashboard() {
   const { teams, name, phase } = useTournament()
@@ -15,6 +16,7 @@ export default function Dashboard() {
     <div className="app">
       <header className="app-header">
         <h1>{name}</h1>
+        <SyncStatus />
         {phase === 'completed' && (
           <div className="tournament-complete-badge">Tournament Complete</div>
         )}

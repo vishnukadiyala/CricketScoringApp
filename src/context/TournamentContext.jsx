@@ -1,6 +1,7 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { loadTournament, saveTournament } from '../lib/storage'
 import { DEFAULT_OVERS_PER_INNINGS } from '../lib/constants'
+import { useFirebaseSync } from '../lib/useFirebaseSync'
 
 const TournamentContext = createContext()
 
@@ -16,22 +17,19 @@ export const initialTournamentState = {
 
 function generateLeagueSchedule(teams) {
   if (teams.length < 3) return []
+  const m = (id, num, t1, t2) => ({
+    id, matchNumber: num, type: 'league',
+    team1Id: t1, team2Id: t2,
+    status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
+  })
+  // Each pair plays twice (6 league matches)
   return [
-    {
-      id: 'match_1', matchNumber: 1, type: 'league',
-      team1Id: teams[0].id, team2Id: teams[1].id,
-      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
-    },
-    {
-      id: 'match_2', matchNumber: 2, type: 'league',
-      team1Id: teams[0].id, team2Id: teams[2].id,
-      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
-    },
-    {
-      id: 'match_3', matchNumber: 3, type: 'league',
-      team1Id: teams[1].id, team2Id: teams[2].id,
-      status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
-    },
+    m('match_1', 1, teams[0].id, teams[1].id),
+    m('match_2', 2, teams[0].id, teams[2].id),
+    m('match_3', 3, teams[1].id, teams[2].id),
+    m('match_4', 4, teams[1].id, teams[0].id),
+    m('match_5', 5, teams[2].id, teams[0].id),
+    m('match_6', 6, teams[2].id, teams[1].id),
   ]
 }
 
@@ -110,12 +108,14 @@ export function tournamentReducer(state, action) {
       const leagueMatches = newMatches.filter(m => m.type === 'league')
       const allLeagueDone = leagueMatches.every(m => m.status === 'completed')
 
+      const nextMatchNum = newMatches.length + 1
+
       if (allLeagueDone && !newMatches.find(m => m.type === 'eliminator')) {
         // Compute standings to determine 2nd and 3rd
         const standings = getQuickStandings(state.teams, leagueMatches)
         if (standings.length >= 3) {
           newMatches = [...newMatches, {
-            id: 'match_4', matchNumber: 4, type: 'eliminator',
+            id: `match_${nextMatchNum}`, matchNumber: nextMatchNum, type: 'eliminator',
             team1Id: standings[1].teamId, team2Id: standings[2].teamId,
             status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
           }]
@@ -129,9 +129,10 @@ export function tournamentReducer(state, action) {
         const leagueStandings = getQuickStandings(state.teams, leagueMatches)
         const firstPlaceId = leagueStandings[0]?.teamId
         const eliminatorWinnerId = eliminator.winnerId
+        const finalNum = newMatches.length + 1
         if (firstPlaceId && eliminatorWinnerId) {
           newMatches = [...newMatches, {
-            id: 'match_5', matchNumber: 5, type: 'final',
+            id: `match_${finalNum}`, matchNumber: finalNum, type: 'final',
             team1Id: firstPlaceId, team2Id: eliminatorWinnerId,
             status: 'upcoming', winnerId: null, isTied: false, result: '', teamSummaries: {},
           }]
@@ -142,10 +143,6 @@ export function tournamentReducer(state, action) {
       // Check if final is done
       const final_ = newMatches.find(m => m.type === 'final')
       if (final_ && final_.status === 'completed') {
-        newPhase = 'completed'
-      }
-      // Edge: if the match being completed is the final
-      if (matchId === 'match_5') {
         newPhase = 'completed'
       }
 
@@ -169,6 +166,14 @@ export function tournamentReducer(state, action) {
 
     case 'RESET_TOURNAMENT': {
       return { ...initialTournamentState }
+    }
+
+    case 'SYNC_FROM_REMOTE': {
+      const remote = action.payload
+      if (!remote || !remote.teams || !remote.matches) return state
+      // eslint-disable-next-line no-unused-vars
+      const { _lastWriteTime, ...cleaned } = remote
+      return { ...initialTournamentState, ...cleaned }
     }
 
     default:
@@ -224,6 +229,21 @@ export function TournamentProvider({ children }) {
   useEffect(() => {
     saveTournament(state)
   }, [state])
+
+  const onRemoteUpdate = useCallback((data) => {
+    dispatch({ type: 'SYNC_FROM_REMOTE', payload: data })
+  }, [])
+
+  const filterBeforeWrite = useCallback((s) => {
+    // eslint-disable-next-line no-unused-vars
+    const { _lastWriteTime, ...rest } = s
+    return rest
+  }, [])
+
+  useFirebaseSync('/tournament', state, onRemoteUpdate, {
+    debounceMs: 800,
+    filterBeforeWrite,
+  })
 
   const getTeamName = (teamId) => {
     const team = state.teams.find(t => t.id === teamId)

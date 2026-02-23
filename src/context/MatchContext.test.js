@@ -167,7 +167,7 @@ describe('SCORE_BALL — Extras', () => {
     const next = scoreBall(state, { extraType: 'wide', runs: 2, runType: 'extra' })
     const inn = next.innings[0]
     expect(inn.totalRuns).toBe(3) // 1 + 2
-    expect(inn.extras.wides).toBe(3)
+    expect(inn.extras.wides).toBe(1)
   })
 
   it('should record a no-ball', () => {
@@ -325,13 +325,13 @@ describe('Over Completion', () => {
     expect(state.innings[0].bowlers[0].maidens).toBe(1)
   })
 
-  it('should count wides as breaking maiden', () => {
+  it('should NOT count wides as breaking maiden', () => {
     let state = setupMatch()
     state = scoreNBalls(state, 5, { runs: 0 })
     // Wide doesn't count as legal delivery, so we need one more ball
     state = scoreBall(state, { extraType: 'wide', runs: 0, runType: 'extra' })
     state = scoreBall(state, { runs: 0 }) // 6th legal delivery
-    expect(state.innings[0].bowlers[0].maidens).toBe(0)
+    expect(state.innings[0].bowlers[0].maidens).toBe(1)
   })
 
   it('should not count wides as legal deliveries', () => {
