@@ -722,7 +722,30 @@ export function matchReducer(state, action) {
       if (!remote || !remote.phase || !remote.innings) return state
       // eslint-disable-next-line no-unused-vars
       const { _lastWriteTime, ...cleaned } = remote
-      return { ...initialState, ...cleaned, ballHistory: [], superOverHistory: [] }
+      // Firebase converts arrays to objects with numeric keys — deep convert back
+      const toArray = (val) => {
+        if (Array.isArray(val)) return val
+        if (val && typeof val === 'object' && Object.keys(val).every(k => /^\d+$/.test(k))) {
+          return Object.values(val)
+        }
+        return val
+      }
+      const deepConvert = (obj) => {
+        if (obj === null || obj === undefined) return obj
+        if (Array.isArray(obj)) return obj.map(deepConvert)
+        if (typeof obj === 'object') {
+          const converted = toArray(obj)
+          if (Array.isArray(converted)) return converted.map(deepConvert)
+          const result = {}
+          for (const [k, v] of Object.entries(converted)) {
+            result[k] = deepConvert(v)
+          }
+          return result
+        }
+        return obj
+      }
+      const restored = deepConvert(cleaned)
+      return { ...initialState, ...restored, ballHistory: [], superOverHistory: [] }
     }
 
     default:
