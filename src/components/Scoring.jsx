@@ -98,6 +98,24 @@ export default function Scoring() {
           >
             Start Over
           </button>
+
+          <div className="scoring-footer">
+            <button
+              type="button"
+              className="btn btn-undo"
+              aria-label="Undo last ball"
+              onClick={() => {
+                if (!canUndo || isProcessing) return
+                setIsProcessing(true)
+                dispatch({ type: 'UNDO_BALL' })
+                setNewBowlerName('')
+                setTimeout(() => setIsProcessing(false), 150)
+              }}
+              disabled={!canUndo || isProcessing}
+            >
+              Undo Last Ball
+            </button>
+          </div>
         </div>
       </div>
     )

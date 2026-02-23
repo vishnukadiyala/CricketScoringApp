@@ -767,7 +767,13 @@ export function matchReducer(state, action) {
         return obj
       }
       const restored = deepConvert(cleaned)
-      return restoreInningsDefaults({ ...initialState, ...restored, ballHistory: [], superOverHistory: [] })
+      // Preserve local undo history — remote data never includes it
+      return restoreInningsDefaults({
+        ...initialState,
+        ...restored,
+        ballHistory: state.ballHistory || [],
+        superOverHistory: state.superOverHistory || [],
+      })
     }
 
     default:
@@ -814,8 +820,12 @@ function loadSavedState(key) {
     const parsed = JSON.parse(saved)
     // Validate it has the expected shape
     if (parsed && parsed.phase && parsed.innings) {
-      // Restore ballHistory as empty (don't persist undo history)
-      return restoreInningsDefaults({ ...initialState, ...parsed, ballHistory: [] })
+      return restoreInningsDefaults({
+        ...initialState,
+        ...parsed,
+        ballHistory: parsed.ballHistory || [],
+        superOverHistory: parsed.superOverHistory || [],
+      })
     }
   } catch {
     // Corrupted data — ignore
@@ -830,9 +840,8 @@ function saveState(state, key) {
       localStorage.removeItem(key)
       return
     }
-    // Omit ballHistory from persistence (large, transient)
     // eslint-disable-next-line no-unused-vars
-    const { ballHistory, superOverHistory, ...toSave } = state
+    const { _lastWriteTime, ...toSave } = state
     localStorage.setItem(key, JSON.stringify(toSave))
   } catch {
     // Storage full or unavailable — silently ignore

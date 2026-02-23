@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { useMatch } from '../context/MatchContext'
 
 export default function InningsBreak() {
   const {
     phase, innings, currentInnings, cumulativeScores, team1, team2,
-    inningsTimers, getOrdinal, dispatch,
+    inningsTimers, getOrdinal, dispatch, canUndo,
   } = useMatch()
+  const [isProcessing, setIsProcessing] = useState(false)
 
   // Follow-on decision
   if (phase === 'follow-on-decision') {
@@ -51,6 +53,24 @@ export default function InningsBreak() {
               Continue Normal Order
             </button>
           </div>
+
+          {canUndo && (
+            <div className="scoring-footer" style={{ marginTop: '12px' }}>
+              <button
+                type="button"
+                className="btn btn-undo btn-block"
+                onClick={() => {
+                  if (isProcessing) return
+                  setIsProcessing(true)
+                  dispatch({ type: 'UNDO_BALL' })
+                  setTimeout(() => setIsProcessing(false), 150)
+                }}
+                disabled={isProcessing}
+              >
+                Undo Last Ball
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -96,6 +116,24 @@ export default function InningsBreak() {
         >
           Start {ordinal} Innings
         </button>
+
+        {canUndo && (
+          <div className="scoring-footer" style={{ marginTop: '12px' }}>
+            <button
+              type="button"
+              className="btn btn-undo btn-block"
+              onClick={() => {
+                if (isProcessing) return
+                setIsProcessing(true)
+                dispatch({ type: 'UNDO_BALL' })
+                setTimeout(() => setIsProcessing(false), 150)
+              }}
+              disabled={isProcessing}
+            >
+              Undo Last Ball
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
