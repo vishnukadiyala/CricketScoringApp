@@ -1,10 +1,27 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { auth, signOut } from '../lib/firebase'
 
 export default function NavBar() {
   const location = useLocation()
+  const { isAuthEnabled, isAuthenticated, isOrganizer } = useAuth()
 
   // Hide nav during active scoring
   if (location.pathname.endsWith('/score')) return null
+
+  // Hide nav on login page
+  if (location.pathname === '/login') return null
+
+  // Hide nav when auth is enabled but user isn't authenticated
+  if (isAuthEnabled && !isAuthenticated) return null
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth)
+    } catch {
+      // ignore
+    }
+  }
 
   return (
     <nav className="navbar">
@@ -17,9 +34,16 @@ export default function NavBar() {
       <NavLink to="/stats" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
         Stats
       </NavLink>
-      <NavLink to="/admin" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
-        Admin
-      </NavLink>
+      {(!isAuthEnabled || isOrganizer) && (
+        <NavLink to="/admin" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
+          Admin
+        </NavLink>
+      )}
+      {isAuthEnabled && isAuthenticated && (
+        <button className="nav-tab nav-logout" onClick={handleLogout} type="button">
+          Logout
+        </button>
+      )}
     </nav>
   )
 }

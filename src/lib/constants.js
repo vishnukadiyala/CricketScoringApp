@@ -22,7 +22,7 @@ export const FOLLOW_ON_THRESHOLD = 0.5
 export const MAX_UNDO_HISTORY = 20
 
 // Tournament constants
-export const LEAGUE_MATCHES = 3
+export const LEAGUE_MATCHES = 6
 export const NUM_TEAMS = 3
 export const POINTS_WIN = 2
 export const POINTS_TIE = 1

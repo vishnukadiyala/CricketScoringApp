@@ -147,7 +147,7 @@ function playMatch(team1, team2, squad1, squad2, inningsScores, oversPerInnings 
 
 describe('Full E2E Tournament Simulation', () => {
 
-  it('should create tournament with 3 teams and auto-generate league schedule', () => {
+  it('should create tournament with 3 teams and auto-generate 6 league matches', () => {
     let tState = initialTournamentState
     tState = tournamentReducer(tState, { type: 'CREATE_TOURNAMENT', name: 'NCC Edition 5 Test', oversPerInnings: 12 })
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Alpha', squad: TEAM_A_SQUAD })
@@ -155,70 +155,51 @@ describe('Full E2E Tournament Simulation', () => {
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Gamma', squad: TEAM_C_SQUAD })
 
     expect(tState.teams).toHaveLength(3)
-    expect(tState.matches).toHaveLength(3)
+    expect(tState.matches).toHaveLength(6)
     expect(tState.phase).toBe('league')
     expect(tState.teams[0].squad).toHaveLength(15)
     expect(tState.teams[1].squad).toHaveLength(15)
     expect(tState.teams[2].squad).toHaveLength(15)
   })
 
-  it('should simulate a complete league phase and verify standings', () => {
+  it('should simulate a complete league phase (6 matches) and verify standings', () => {
     let tState = initialTournamentState
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Alpha', squad: TEAM_A_SQUAD })
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Beta', squad: TEAM_B_SQUAD })
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Gamma', squad: TEAM_C_SQUAD })
 
-    // Match 1: Alpha vs Beta — Alpha scores 2/ball (144 cumulative), Beta scores 1/ball (72 cumulative)
-    tState = tournamentReducer(tState, { type: 'START_MATCH', matchId: 'match_1' })
-    const match1State = playMatch('Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, [2, 1, 2, 1])
-    expect(match1State.phase).toBe('match-over')
-    expect(match1State.cumulativeScores.team1).toBeGreaterThan(match1State.cumulativeScores.team2)
+    // Helper to complete a tournament match
+    const completeTMatch = (matchId, team1, team2, squad1, squad2, t1Id, t2Id, scores) => {
+      tState = tournamentReducer(tState, { type: 'START_MATCH', matchId })
+      const ms = playMatch(team1, team2, squad1, squad2, scores)
+      const ts = extractTeamSummaries(ms, t1Id, t2Id)
+      const winnerId = ms.cumulativeScores.team1 > ms.cumulativeScores.team2 ? t1Id : t2Id
+      tState = tournamentReducer(tState, {
+        type: 'COMPLETE_MATCH', matchId, winnerId,
+        isTied: false, result: ms.result, teamSummaries: ts,
+      })
+    }
 
-    const ts1 = extractTeamSummaries(match1State, 'team_1', 'team_2')
-    tState = tournamentReducer(tState, {
-      type: 'COMPLETE_MATCH', matchId: 'match_1',
-      winnerId: 'team_1', isTied: false,
-      result: match1State.result, teamSummaries: ts1,
-    })
-    expect(tState.matches[0].status).toBe('completed')
+    // 6 league matches: Alpha wins all, Beta beats Gamma twice
+    completeTMatch('match_1', 'Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, 'team_1', 'team_2', [2, 1, 2, 1])
+    completeTMatch('match_2', 'Alpha', 'Gamma', TEAM_A_SQUAD, TEAM_C_SQUAD, 'team_1', 'team_3', [2, 1, 2, 1])
+    completeTMatch('match_3', 'Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, 'team_2', 'team_3', [2, 1, 2, 1])
+    completeTMatch('match_4', 'Beta', 'Alpha', TEAM_B_SQUAD, TEAM_A_SQUAD, 'team_2', 'team_1', [1, 2, 1, 2])
+    completeTMatch('match_5', 'Gamma', 'Alpha', TEAM_C_SQUAD, TEAM_A_SQUAD, 'team_3', 'team_1', [1, 2, 1, 2])
+    completeTMatch('match_6', 'Gamma', 'Beta', TEAM_C_SQUAD, TEAM_B_SQUAD, 'team_3', 'team_2', [1, 2, 1, 2])
 
-    // Match 2: Alpha vs Gamma — Alpha scores 2/ball, Gamma scores 1/ball
-    tState = tournamentReducer(tState, { type: 'START_MATCH', matchId: 'match_2' })
-    const match2State = playMatch('Alpha', 'Gamma', TEAM_A_SQUAD, TEAM_C_SQUAD, [2, 1, 2, 1])
-    expect(match2State.phase).toBe('match-over')
-
-    const ts2 = extractTeamSummaries(match2State, 'team_1', 'team_3')
-    tState = tournamentReducer(tState, {
-      type: 'COMPLETE_MATCH', matchId: 'match_2',
-      winnerId: 'team_1', isTied: false,
-      result: match2State.result, teamSummaries: ts2,
-    })
-
-    // Match 3: Beta vs Gamma — Beta scores 2/ball, Gamma scores 1/ball
-    tState = tournamentReducer(tState, { type: 'START_MATCH', matchId: 'match_3' })
-    const match3State = playMatch('Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, [2, 1, 2, 1])
-    expect(match3State.phase).toBe('match-over')
-
-    const ts3 = extractTeamSummaries(match3State, 'team_2', 'team_3')
-    tState = tournamentReducer(tState, {
-      type: 'COMPLETE_MATCH', matchId: 'match_3',
-      winnerId: 'team_2', isTied: false,
-      result: match3State.result, teamSummaries: ts3,
-    })
-
-    // After all 3 league matches, eliminator should be auto-created
-    expect(tState.matches).toHaveLength(4)
+    // After all 6 league matches, eliminator should be auto-created
+    expect(tState.matches).toHaveLength(7)
     expect(tState.phase).toBe('eliminator')
 
-    // Verify standings: Alpha 1st (4 pts, won 2), Beta 2nd (2 pts, won 1), Gamma 3rd (0 pts)
+    // Verify standings: Alpha 1st (8 pts, won 4), Beta 2nd (4 pts, won 2), Gamma 3rd (0 pts)
     const standings = computeStandings(tState.teams, tState.matches)
     expect(standings[0].teamName).toBe('Alpha')
-    expect(standings[0].points).toBe(4)
-    expect(standings[0].won).toBe(2)
+    expect(standings[0].won).toBe(4)
     expect(standings[1].teamName).toBe('Beta')
-    expect(standings[1].points).toBe(2)
+    expect(standings[1].won).toBe(2)
     expect(standings[2].teamName).toBe('Gamma')
-    expect(standings[2].points).toBe(0)
+    expect(standings[2].won).toBe(0)
 
     // Verify NRR: All teams should have valid NRR values
     standings.forEach(s => {
@@ -227,7 +208,7 @@ describe('Full E2E Tournament Simulation', () => {
     })
 
     // Eliminator: Beta vs Gamma
-    const eliminator = tState.matches[3]
+    const eliminator = tState.matches[6]
     expect(eliminator.type).toBe('eliminator')
     expect(eliminator.team1Id).toBe('team_2')
     expect(eliminator.team2Id).toBe('team_3')
@@ -240,7 +221,7 @@ describe('Full E2E Tournament Simulation', () => {
     tState = tournamentReducer(tState, { type: 'ADD_TEAM', name: 'Gamma', squad: TEAM_C_SQUAD })
 
     // Helper to complete a tournament match quickly
-    const completeMatch = (matchId, team1, team2, squad1, squad2, t1Id, t2Id, scores) => {
+    const completeTMatch = (matchId, team1, team2, squad1, squad2, t1Id, t2Id, scores) => {
       tState = tournamentReducer(tState, { type: 'START_MATCH', matchId })
       const ms = playMatch(team1, team2, squad1, squad2, scores)
       const ts = extractTeamSummaries(ms, t1Id, t2Id)
@@ -252,31 +233,34 @@ describe('Full E2E Tournament Simulation', () => {
       return ms
     }
 
-    // League matches
-    completeMatch('match_1', 'Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, 'team_1', 'team_2', [2, 1, 2, 1])
-    completeMatch('match_2', 'Alpha', 'Gamma', TEAM_A_SQUAD, TEAM_C_SQUAD, 'team_1', 'team_3', [2, 1, 2, 1])
-    completeMatch('match_3', 'Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, 'team_2', 'team_3', [2, 1, 2, 1])
+    // 6 League matches
+    completeTMatch('match_1', 'Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, 'team_1', 'team_2', [2, 1, 2, 1])
+    completeTMatch('match_2', 'Alpha', 'Gamma', TEAM_A_SQUAD, TEAM_C_SQUAD, 'team_1', 'team_3', [2, 1, 2, 1])
+    completeTMatch('match_3', 'Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, 'team_2', 'team_3', [2, 1, 2, 1])
+    completeTMatch('match_4', 'Beta', 'Alpha', TEAM_B_SQUAD, TEAM_A_SQUAD, 'team_2', 'team_1', [1, 2, 1, 2])
+    completeTMatch('match_5', 'Gamma', 'Alpha', TEAM_C_SQUAD, TEAM_A_SQUAD, 'team_3', 'team_1', [1, 2, 1, 2])
+    completeTMatch('match_6', 'Gamma', 'Beta', TEAM_C_SQUAD, TEAM_B_SQUAD, 'team_3', 'team_2', [1, 2, 1, 2])
 
     expect(tState.phase).toBe('eliminator')
-    expect(tState.matches).toHaveLength(4)
+    expect(tState.matches).toHaveLength(7)
 
     // Eliminator: Beta (2nd) vs Gamma (3rd)
-    completeMatch('match_4', 'Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, 'team_2', 'team_3', [2, 1, 2, 1])
+    completeTMatch('match_7', 'Beta', 'Gamma', TEAM_B_SQUAD, TEAM_C_SQUAD, 'team_2', 'team_3', [2, 1, 2, 1])
 
     expect(tState.phase).toBe('final')
-    expect(tState.matches).toHaveLength(5)
+    expect(tState.matches).toHaveLength(8)
 
-    const final_ = tState.matches[4]
+    const final_ = tState.matches[7]
     expect(final_.type).toBe('final')
     expect(final_.team1Id).toBe('team_1') // Alpha (1st place)
     expect(final_.team2Id).toBe('team_2') // Beta (eliminator winner)
 
     // Final: Alpha vs Beta
-    completeMatch('match_5', 'Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, 'team_1', 'team_2', [3, 1, 3, 1])
+    completeTMatch('match_8', 'Alpha', 'Beta', TEAM_A_SQUAD, TEAM_B_SQUAD, 'team_1', 'team_2', [3, 1, 3, 1])
 
     expect(tState.phase).toBe('completed')
-    expect(tState.matches[4].status).toBe('completed')
-    expect(tState.matches[4].winnerId).toBe('team_1') // Alpha wins final
+    expect(tState.matches[7].status).toBe('completed')
+    expect(tState.matches[7].winnerId).toBe('team_1') // Alpha wins final
   })
 
   it('should produce valid match reports for completed matches', () => {

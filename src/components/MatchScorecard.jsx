@@ -4,12 +4,20 @@ export default function MatchScorecard({ matchState }) {
   if (!matchState) return null
 
   const { innings, team1, team2, result, superOver, cumulativeScores,
-    cumulativeBoundaries, followOnEnforced, substitutions } = matchState
+    cumulativeBoundaries, followOnEnforced, substitutions, inningsTimers } = matchState
 
   function getOrdinal(n) {
     const s = ['th', 'st', 'nd', 'rd']
     const v = n % 100
     return n + (s[(v - 20) % 10] || s[v] || s[0])
+  }
+
+  function formatDuration(ms) {
+    if (!ms || ms <= 0) return null
+    const totalSecs = Math.floor(ms / 1000)
+    const mins = Math.floor(totalSecs / 60)
+    const secs = totalSecs % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -26,6 +34,11 @@ export default function MatchScorecard({ matchState }) {
               <h3>{inn.battingTeam} — {getOrdinal(idx + 1)} Innings</h3>
               <span className="scorecard-total">
                 {inn.totalRuns}/{inn.wickets} ({inn.oversCompleted}.{inn.ballsInCurrentOver} ov)
+                {(() => {
+                  const start = inningsTimers?.[idx]
+                  const dur = start && inn.endTime ? formatDuration(inn.endTime - start) : null
+                  return dur ? <span className="scorecard-duration"> — {dur}</span> : null
+                })()}
               </span>
             </div>
 

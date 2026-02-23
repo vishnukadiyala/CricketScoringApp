@@ -211,7 +211,7 @@ export default function Scoring() {
               <div className="form-group">
                 <label>{extraType === 'wide' || extraType === 'noBall' ? 'Additional runs' : 'Runs'}</label>
                 <div className="run-buttons">
-                  {[0, 1, 2, 3, 4].map((r) => (
+                  {[0, 1, 2, 3, 4, 6].map((r) => (
                     <button
                       key={r}
                       className={`btn btn-run-small ${extraRuns === r ? 'btn-primary' : 'btn-outline'}`}

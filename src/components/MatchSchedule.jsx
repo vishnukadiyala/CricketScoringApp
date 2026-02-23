@@ -1,11 +1,15 @@
 import { useNavigate } from 'react-router-dom'
 import { useTournament } from '../context/TournamentContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function MatchSchedule() {
   const { matches, dispatch, getTeamName } = useTournament()
+  const { isAuthEnabled, isOrganizer } = useAuth()
   const navigate = useNavigate()
 
   if (matches.length === 0) return null
+
+  const canScore = !isAuthEnabled || isOrganizer
 
   const handleStartMatch = (matchId) => {
     dispatch({ type: 'START_MATCH', matchId })
@@ -41,7 +45,7 @@ export default function MatchSchedule() {
               <div className="schedule-result">{match.result}</div>
             )}
             <div className="schedule-actions">
-              {match.status === 'upcoming' && (
+              {match.status === 'upcoming' && canScore && (
                 <button
                   className="btn btn-primary"
                   onClick={() => handleStartMatch(match.id)}
@@ -49,12 +53,20 @@ export default function MatchSchedule() {
                   Start Match
                 </button>
               )}
-              {match.status === 'live' && (
+              {match.status === 'live' && canScore && (
                 <button
                   className="btn btn-primary"
                   onClick={() => navigate(`/match/${match.id}/score`)}
                 >
                   Continue Scoring
+                </button>
+              )}
+              {match.status === 'live' && !canScore && (
+                <button
+                  className="btn btn-outline"
+                  onClick={() => navigate(`/match/${match.id}`)}
+                >
+                  View Live
                 </button>
               )}
               {match.status === 'completed' && (
