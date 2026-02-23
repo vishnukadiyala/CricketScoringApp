@@ -280,8 +280,17 @@ export function tournamentReducer(state, action) {
       if (!remote || !remote.teams || !remote.matches) return state
       // eslint-disable-next-line no-unused-vars
       const { _lastWriteTime, ...cleaned } = remote
+      // Firebase converts arrays to objects with numeric keys — convert back
+      const toArray = (val) => {
+        if (Array.isArray(val)) return val
+        if (val && typeof val === 'object') return Object.values(val)
+        return []
+      }
+      cleaned.teams = toArray(cleaned.teams)
+      cleaned.matches = toArray(cleaned.matches)
+      if (cleaned.squadChanges) cleaned.squadChanges = toArray(cleaned.squadChanges)
       // Migrate remote squads and preserve squadChanges
-      const migratedTeams = (cleaned.teams || []).map(t => ({
+      const migratedTeams = cleaned.teams.map(t => ({
         ...t,
         squad: migrateSquad(t.squad),
       }))
