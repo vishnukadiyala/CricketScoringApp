@@ -4,6 +4,18 @@
   box-sizing: border-box;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 :root {
   --bg: #0f172a;
   --surface: #1e293b;
@@ -2257,6 +2269,11 @@ button:focus-visible {
   cursor: pointer;
   color: var(--text);
   transition: color 0.15s;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 0;
+  text-align: left;
 }
 
 .player-link:hover {
@@ -3040,4 +3057,91 @@ button:focus-visible {
   color: var(--text-muted);
   font-weight: 400;
   font-style: italic;
+}
+
+/* ── Ball History Timeline ──────────────────────────────────── */
+
+.ball-timeline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+
+.ball-timeline-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.ball-timeline-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.ball-timeline-strip::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.ball-timeline-chip {
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.1s, border-color 0.15s, opacity 0.15s;
+}
+
+.ball-timeline-chip:hover {
+  transform: scale(1.12);
+}
+
+.ball-timeline-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.ball-timeline-chip.timeline-selected {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+}
+
+.ball-timeline-chip.timeline-will-undo {
+  opacity: 0.35;
+}
+
+.ball-timeline-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ball-timeline-confirm .btn-sm {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.ball-timeline-confirm .btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+.ball-timeline-confirm .btn-danger:hover {
+  opacity: 0.9;
+}
+
+.ball-timeline-confirm span {
+  flex: 1;
 }

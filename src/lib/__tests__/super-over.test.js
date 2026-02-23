@@ -308,7 +308,7 @@ describe('Super Over Result', () => {
 })
 
 describe('Super Over Undo', () => {
-  it('UNDO_SUPER_OVER_BALL restores previous super over state', () => {
+  it('UNDO_LAST_SUPER_OVER_BALL restores previous super over state', () => {
     let state = getToSuperOver()
     state = scoreSuperOverBall(state, { runs: 4 })
     state = scoreSuperOverBall(state, { runs: 6 })
@@ -316,31 +316,31 @@ describe('Super Over Undo', () => {
     expect(state.superOver.innings1.runs).toBe(10)
     expect(state.superOver.innings1.fours).toBe(1)
     expect(state.superOver.innings1.sixes).toBe(1)
-    expect(state.superOverHistory.length).toBe(2)
+    expect(state.superOverSnapshots.length).toBe(2)
 
     // Undo the six
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     expect(state.superOver.innings1.runs).toBe(4)
     expect(state.superOver.innings1.fours).toBe(1)
     expect(state.superOver.innings1.sixes).toBe(0)
-    expect(state.superOverHistory.length).toBe(1)
+    expect(state.superOverSnapshots.length).toBe(1)
 
     // Undo the four
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     expect(state.superOver.innings1.runs).toBe(0)
     expect(state.superOver.innings1.fours).toBe(0)
-    expect(state.superOverHistory.length).toBe(0)
+    expect(state.superOverSnapshots.length).toBe(0)
   })
 
-  it('UNDO_SUPER_OVER_BALL does nothing when history is empty', () => {
+  it('UNDO_LAST_SUPER_OVER_BALL does nothing when history is empty', () => {
     let state = getToSuperOver()
     const before = state
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     // Should return same state reference when no history
     expect(state).toBe(before)
   })
 
-  it('UNDO_SUPER_OVER_BALL can restore across innings boundary', () => {
+  it('UNDO_LAST_SUPER_OVER_BALL can restore across innings boundary', () => {
     let state = getToSuperOver()
     // Score 6 balls in first innings (6 runs)
     for (let i = 0; i < 6; i++) {
@@ -353,7 +353,7 @@ describe('Super Over Undo', () => {
     expect(state.superOver.innings2.runs).toBe(2)
 
     // Undo the ball in innings 2 -- restores to end of innings 1
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     // The snapshot captured before the ball in innings 2 was scored
     // had phase = 'batting-2' and innings2.runs = 0
     expect(state.superOver.phase).toBe('batting-2')
@@ -508,7 +508,7 @@ describe('Super Over Boundary Tiebreaker', () => {
     expect(state.superOver.innings2.runs).toBe(0)
     expect(state.superOver.innings2.target).toBe(0)
     expect(state.result).toBe('')
-    expect(state.superOverHistory).toEqual([])
+    expect(state.superOverSnapshots).toEqual([])
   })
 
   it('END_AS_TIE moves phase to match-over', () => {

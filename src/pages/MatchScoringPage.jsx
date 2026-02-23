@@ -12,6 +12,7 @@ import Scoring from '../components/Scoring'
 import OverSummary from '../components/OverSummary'
 import InningsBreak from '../components/InningsBreak'
 import SquadRotation from '../components/SquadRotation'
+import BallHistoryTimeline from '../components/BallHistoryTimeline'
 import SuperOver from '../components/SuperOver'
 import MatchResult from '../components/MatchResult'
 
@@ -109,6 +110,7 @@ export default function MatchScoringPage() {
             <BattingOrder />
             <ScoreDisplay />
             <Scoring />
+            <BallHistoryTimeline />
             <OverSummary />
             <InningsBreak />
             <SquadRotation />

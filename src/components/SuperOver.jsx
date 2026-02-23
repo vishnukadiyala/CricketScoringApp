@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMatch } from '../context/MatchContext'
 import { getBallClass } from '../lib/ballDisplay'
 import { SUPER_OVER_BATSMEN, SUPER_OVER_BALLS, SUPER_OVER_WICKETS } from '../lib/constants'
+import BallHistoryTimeline from './BallHistoryTimeline'
 
 export default function SuperOver() {
   const {
@@ -254,7 +255,7 @@ export default function SuperOver() {
     const handleUndo = () => {
       if (!canUndoSuperOver || isProcessing) return
       handleAction(() => {
-        dispatch({ type: 'UNDO_SUPER_OVER_BALL' })
+        dispatch({ type: 'UNDO_LAST_SUPER_OVER_BALL' })
       })
     }
 
@@ -354,6 +355,9 @@ export default function SuperOver() {
               <span key={i} className={`ball-badge ${getBallClass(ball)}`}>{ball}</span>
             ))}
           </div>
+
+          {/* Ball history timeline for multi-ball undo */}
+          <BallHistoryTimeline isSuper />
 
           {/* Scoring panel */}
           {canScore && (

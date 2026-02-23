@@ -62,7 +62,7 @@ export default function InningsBreak() {
                 onClick={() => {
                   if (isProcessing) return
                   setIsProcessing(true)
-                  dispatch({ type: 'UNDO_BALL' })
+                  dispatch({ type: 'UNDO_LAST_BALL' })
                   setTimeout(() => setIsProcessing(false), 150)
                 }}
                 disabled={isProcessing}
@@ -125,7 +125,7 @@ export default function InningsBreak() {
               onClick={() => {
                 if (isProcessing) return
                 setIsProcessing(true)
-                dispatch({ type: 'UNDO_BALL' })
+                dispatch({ type: 'UNDO_LAST_BALL' })
                 setTimeout(() => setIsProcessing(false), 150)
               }}
               disabled={isProcessing}

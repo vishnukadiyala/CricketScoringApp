@@ -116,7 +116,7 @@ export default function Scoring() {
               onClick={() => {
                 if (!canUndo || isProcessing) return
                 setIsProcessing(true)
-                dispatch({ type: 'UNDO_BALL' })
+                dispatch({ type: 'UNDO_LAST_BALL' })
                 setNewBowlerName('')
                 setTimeout(() => setIsProcessing(false), 150)
               }}
@@ -206,7 +206,7 @@ export default function Scoring() {
   const handleUndo = () => {
     if (!canUndo || isProcessing) return
     handleAction(() => {
-      dispatch({ type: 'UNDO_BALL' })
+      dispatch({ type: 'UNDO_LAST_BALL' })
     })
   }
 

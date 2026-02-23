@@ -436,16 +436,16 @@ describe('Innings End', () => {
   })
 })
 
-describe('UNDO_BALL', () => {
+describe('UNDO_LAST_BALL', () => {
   it('should undo the last ball', () => {
     let state = setupMatch()
     state = scoreBall(state, { runs: 4 })
     expect(state.innings[0].totalRuns).toBe(4)
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(0)
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
   })
 
   it('should undo multiple balls', () => {
@@ -455,10 +455,10 @@ describe('UNDO_BALL', () => {
     state = scoreBall(state, { runs: 6 })
     expect(state.innings[0].totalRuns).toBe(11)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(5)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(1)
   })
 
@@ -467,7 +467,7 @@ describe('UNDO_BALL', () => {
     state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: 'A3' })
     expect(state.innings[0].wickets).toBe(1)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].wickets).toBe(0)
     expect(state.innings[0].batsmen.length).toBe(2) // A3 removed
   })
@@ -479,13 +479,13 @@ describe('UNDO_BALL', () => {
     state = scoreBall(state, { runs: 0 })
     expect(state.lastBallWasNoBall).toBe(false)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.lastBallWasNoBall).toBe(true)
   })
 
   it('should do nothing when no history', () => {
     const state = setupMatch()
-    const next = matchReducer(state, { type: 'UNDO_BALL' })
+    const next = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(next).toBe(state)
   })
 })
@@ -493,11 +493,11 @@ describe('UNDO_BALL', () => {
 describe('Ball History', () => {
   it('should save snapshot before each SCORE_BALL', () => {
     let state = setupMatch()
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
     state = scoreBall(state, { runs: 1 })
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
     state = scoreBall(state, { runs: 2 })
-    expect(state.ballHistory.length).toBe(2)
+    expect(state.inningsSnapshots.length).toBe(2)
   })
 })
 
@@ -1045,15 +1045,15 @@ describe('Super Over', () => {
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4 })
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 6 })
     expect(state.superOver.innings1.runs).toBe(10)
-    expect(state.superOverHistory.length).toBe(2)
+    expect(state.superOverSnapshots.length).toBe(2)
 
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     expect(state.superOver.innings1.runs).toBe(4)
-    expect(state.superOverHistory.length).toBe(1)
+    expect(state.superOverSnapshots.length).toBe(1)
 
-    state = matchReducer(state, { type: 'UNDO_SUPER_OVER_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
     expect(state.superOver.innings1.runs).toBe(0)
-    expect(state.superOverHistory.length).toBe(0)
+    expect(state.superOverSnapshots.length).toBe(0)
   })
 
   it('should initialize super over innings with extras tracking', () => {
@@ -1073,7 +1073,7 @@ describe('NEW_MATCH', () => {
     expect(state.phase).toBe('setup')
     expect(state.team1).toBe('')
     expect(state.innings).toEqual([null, null, null, null])
-    expect(state.ballHistory).toEqual([])
+    expect(state.inningsSnapshots).toEqual([])
   })
 })
 

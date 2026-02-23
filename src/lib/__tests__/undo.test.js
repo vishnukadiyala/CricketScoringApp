@@ -35,7 +35,7 @@ function getStriker(state) {
 }
 
 function undo(state) {
-  return matchReducer(state, { type: 'UNDO_BALL' })
+  return matchReducer(state, { type: 'UNDO_LAST_BALL' })
 }
 
 // ─── Tests ───────────────────────────────────────────────────
@@ -47,13 +47,13 @@ describe('Basic Undo', () => {
     const inn = getInn(state)
     expect(inn.totalRuns).toBe(0)
     expect(inn.ballsInCurrentOver).toBe(1)
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
 
     state = undo(state)
     const innAfter = getInn(state)
     expect(innAfter.totalRuns).toBe(0)
     expect(innAfter.ballsInCurrentOver).toBe(0)
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
   })
 
   it('score 4 runs then undo: totalRuns back to 0, striker.runs back to 0, striker.fours back to 0', () => {
@@ -100,19 +100,19 @@ describe('Basic Undo', () => {
     state = scoreBall(state, { runs: 4 })
     state = scoreBall(state, { runs: 6 })
     expect(getInn(state).totalRuns).toBe(11)
-    expect(state.ballHistory.length).toBe(3)
+    expect(state.inningsSnapshots.length).toBe(3)
 
     state = undo(state)
     expect(getInn(state).totalRuns).toBe(5)
-    expect(state.ballHistory.length).toBe(2)
+    expect(state.inningsSnapshots.length).toBe(2)
 
     state = undo(state)
     expect(getInn(state).totalRuns).toBe(1)
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
 
     state = undo(state)
     expect(getInn(state).totalRuns).toBe(0)
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
   })
 })
 
@@ -371,7 +371,7 @@ describe('Undo Free Hit', () => {
 describe('Undo With Empty History', () => {
   it('undo with 0 balls bowled: returns same state (no crash)', () => {
     const state = setupMatch()
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
     const next = undo(state)
     // Should not crash and should return the same state
     expect(next.phase).toBe('scoring')
@@ -627,5 +627,149 @@ describe('State Machine — Phase Transitions', () => {
     state = matchReducer(state, { type: 'SET_OPENERS', batsman1: 'B1', batsman2: 'B2', bowler: 'A1' })
     expect(state.phase).toBe('scoring')
     expect(getInn(state).battingTeam).toBe('Team B')
+  })
+})
+
+// ─── UNDO_TO_SNAPSHOT Tests ──────────────────────────────────
+
+describe('UNDO_TO_SNAPSHOT', () => {
+  it('restores to a specific sequence in the middle', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+    state = scoreBall(state, { runs: 2 })
+    state = scoreBall(state, { runs: 3 })
+    expect(state.inningsSnapshots.length).toBe(3)
+
+    // Get the sequence of the first snapshot (before ball 1 was scored)
+    const targetSeq = state.inningsSnapshots[0].sequence
+
+    // Undo to the first snapshot — should restore to state before ball 1
+    state = matchReducer(state, { type: 'UNDO_TO_SNAPSHOT', sequence: targetSeq })
+    expect(state.inningsSnapshots.length).toBe(0)
+    expect(getInn(state).totalRuns).toBe(0)
+    expect(getInn(state).ballsInCurrentOver).toBe(0)
+  })
+
+  it('restores to the second snapshot (middle)', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+    state = scoreBall(state, { runs: 4 })
+    state = scoreBall(state, { runs: 6 })
+    expect(state.inningsSnapshots.length).toBe(3)
+
+    const targetSeq = state.inningsSnapshots[1].sequence
+
+    state = matchReducer(state, { type: 'UNDO_TO_SNAPSHOT', sequence: targetSeq })
+    // Should have 1 snapshot remaining (the one before ball 1)
+    expect(state.inningsSnapshots.length).toBe(1)
+    expect(getInn(state).totalRuns).toBe(1)
+    expect(getInn(state).ballsInCurrentOver).toBe(1)
+  })
+
+  it('returns same state for invalid sequence', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+    const before = state
+    const after = matchReducer(state, { type: 'UNDO_TO_SNAPSHOT', sequence: 99999 })
+    expect(after).toBe(before)
+  })
+
+  it('ball_data.display contains correct string for runs', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 4 })
+    const snap = state.inningsSnapshots[state.inningsSnapshots.length - 1]
+    expect(snap.ball_data).toBeDefined()
+    expect(snap.ball_data.display).toBe('4')
+    expect(snap.ball_data.runs).toBe(4)
+    expect(snap.ball_data.isLegal).toBe(true)
+  })
+
+  it('ball_data.display contains correct string for wickets', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: 'A3' })
+    const snap = state.inningsSnapshots[state.inningsSnapshots.length - 1]
+    expect(snap.ball_data.display).toBe('W')
+    expect(snap.ball_data.wicket).toBe(true)
+    expect(snap.ball_data.dismissalType).toBe('bowled')
+  })
+
+  it('ball_data.isLegal is false for wides', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { extraType: 'wide', runs: 0 })
+    const snap = state.inningsSnapshots[state.inningsSnapshots.length - 1]
+    expect(snap.ball_data.isLegal).toBe(false)
+    expect(snap.ball_data.extraType).toBe('wide')
+    expect(snap.ball_data.display).toBe('Wd')
+  })
+
+  it('ball_data.isLegal is false for no-balls', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { extraType: 'noBall', runs: 0 })
+    const snap = state.inningsSnapshots[state.inningsSnapshots.length - 1]
+    expect(snap.ball_data.isLegal).toBe(false)
+    expect(snap.ball_data.extraType).toBe('noBall')
+    expect(snap.ball_data.display).toBe('NB')
+  })
+
+  it('snapshots are cleared on START_NEXT_INNINGS', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+    state = scoreBall(state, { runs: 2 })
+    expect(state.inningsSnapshots.length).toBe(2)
+
+    // All out to trigger innings break
+    for (let i = 3; i <= 11; i++) {
+      state = scoreBall(state, { wicket: true, dismissalType: 'bowled', newBatsman: `A${i}` })
+    }
+    state = scoreBall(state, { wicket: true, dismissalType: 'bowled' })
+    expect(state.phase).toBe('innings-break')
+
+    state = matchReducer(state, { type: 'START_NEXT_INNINGS' })
+    expect(state.inningsSnapshots.length).toBe(0)
+    expect(state.snapshotSequence).toBe(0)
+  })
+
+  it('multi-ball undo then re-score builds new snapshots from restored state', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+    state = scoreBall(state, { runs: 2 })
+    state = scoreBall(state, { runs: 3 })
+    expect(state.inningsSnapshots.length).toBe(3)
+    expect(getInn(state).totalRuns).toBe(6)
+
+    // Undo back to after ball 1
+    const targetSeq = state.inningsSnapshots[1].sequence
+    state = matchReducer(state, { type: 'UNDO_TO_SNAPSHOT', sequence: targetSeq })
+    expect(state.inningsSnapshots.length).toBe(1)
+    expect(getInn(state).totalRuns).toBe(1)
+
+    // Re-score a new ball — should get a new snapshot
+    state = scoreBall(state, { runs: 6 })
+    expect(state.inningsSnapshots.length).toBe(2)
+    expect(getInn(state).totalRuns).toBe(7)
+
+    // The new snapshot's ball_data should reflect the 6
+    const newSnap = state.inningsSnapshots[state.inningsSnapshots.length - 1]
+    expect(newSnap.ball_data.display).toBe('6')
+    expect(newSnap.ball_data.runs).toBe(6)
+  })
+
+  it('each snapshot has a unique ascending sequence number', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 0 })
+    state = scoreBall(state, { runs: 1 })
+    state = scoreBall(state, { runs: 2 })
+
+    const seqs = state.inningsSnapshots.map(s => s.sequence)
+    expect(seqs[0]).toBeLessThan(seqs[1])
+    expect(seqs[1]).toBeLessThan(seqs[2])
+  })
+
+  it('snapshot contains correct inningsIndex', () => {
+    let state = setupMatch()
+    state = scoreBall(state, { runs: 1 })
+
+    const snap = state.inningsSnapshots[0]
+    expect(snap.inningsIndex).toBe(state.currentInnings)
   })
 })

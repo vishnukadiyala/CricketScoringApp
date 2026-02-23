@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react'
+import { createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   MAX_OVERS_PER_BOWLER, MAX_WICKETS, BALLS_PER_OVER,
   FOLLOW_ON_THRESHOLD, MAX_UNDO_HISTORY,
@@ -73,12 +73,14 @@ const initialState = {
   },
   followOnEnforced: false,
   superOver: null,
-  superOverHistory: [],
+  superOverSnapshots: [],
+  superOverSnapshotSeq: 0,
   substitutions: { team1: [], team2: [] },
   target: null,
   result: '',
-  // Ball history for undo — stores snapshots before each SCORE_BALL
-  ballHistory: [],
+  // Innings snapshots for undo — stores state + ball metadata before each SCORE_BALL
+  inningsSnapshots: [],
+  snapshotSequence: 0,
   // Track last ball as no-ball for free hit
   lastBallWasNoBall: false,
   // Innings timer: { [inningsIndex]: startTime }
@@ -187,8 +189,8 @@ export function matchReducer(state, action) {
     case 'SCORE_BALL': {
       // eslint-disable-next-line no-unused-vars
       const { runType, runs, extraType, wicket, dismissalType, newBatsman, fielder: actionFielder, fielder2: actionFielder2, isDirectHit: actionIsDirectHit } = action
-      // Save snapshot for undo (keep last 20 max)
-      const snapshot = {
+      // Save snapshot for undo (keep last MAX_UNDO_HISTORY)
+      const snapshot_data = {
         innings: structuredClone(state.innings),
         phase: state.phase,
         cumulativeScores: { ...state.cumulativeScores },
@@ -197,7 +199,7 @@ export function matchReducer(state, action) {
         result: state.result,
         lastBallWasNoBall: state.lastBallWasNoBall,
       }
-      const newHistory = [...state.ballHistory, snapshot].slice(-MAX_UNDO_HISTORY)
+      const nextSeq = state.snapshotSequence + 1
       const newInnings = [...state.innings]
       let inn = structuredClone(newInnings[state.currentInnings])
       const striker = inn.batsmen[inn.activeBatsmanIndex]
@@ -433,6 +435,18 @@ export function matchReducer(state, action) {
         }
       }
 
+      // Build ball_data metadata after processing
+      const ball_data = {
+        display: ballDisplay,
+        extraType: extraType || null,
+        wicket: !!wicket,
+        runs: runsScored,
+        dismissalType: dismissalType || null,
+        isLegal: isLegalDelivery,
+      }
+      const newSnapshot = { sequence: nextSeq, inningsIndex: state.currentInnings, snapshot_data, ball_data }
+      const newSnapshots = [...state.inningsSnapshots, newSnapshot].slice(-MAX_UNDO_HISTORY)
+
       return {
         ...state,
         innings: newInnings,
@@ -441,7 +455,8 @@ export function matchReducer(state, action) {
         result,
         cumulativeScores: newCumulativeScores,
         cumulativeBoundaries: newCumulativeBoundaries,
-        ballHistory: newHistory,
+        inningsSnapshots: newSnapshots,
+        snapshotSequence: nextSeq,
         lastBallWasNoBall: extraType === 'noBall',
       }
     }
@@ -472,6 +487,8 @@ export function matchReducer(state, action) {
         ...state,
         currentInnings: state.currentInnings + 1,
         phase: 'batting-order',
+        inningsSnapshots: [],
+        snapshotSequence: 0,
       }
     }
 
@@ -550,6 +567,8 @@ export function matchReducer(state, action) {
           innings1: createSOInnings(),
           innings2: { ...createSOInnings(), target: 0 },
         },
+        superOverSnapshots: [],
+        superOverSnapshotSeq: 0,
         phase: 'super-over',
       }
     }
@@ -571,7 +590,8 @@ export function matchReducer(state, action) {
       const inn = isFirst ? so.innings1 : so.innings2
 
       // Save snapshot for undo before mutating
-      const soSnapshot = structuredClone(state.superOver)
+      const soSnapshotData = structuredClone(state.superOver)
+      const nextSOSeq = (state.superOverSnapshotSeq || 0) + 1
 
       const runsScored = action.runs || 0
       const isWicket = action.wicket || false
@@ -634,21 +654,47 @@ export function matchReducer(state, action) {
         }
       }
 
+      // Build ball_data for super over
+      const soBallData = {
+        display: ballDisplay,
+        extraType: extraType || null,
+        wicket: isWicket,
+        runs: runsScored,
+        dismissalType: null,
+        isLegal: isLegalDelivery,
+      }
+      const newSOSnapshot = { sequence: nextSOSeq, snapshot_data: soSnapshotData, ball_data: soBallData }
+      const newSOSnapshots = [...(state.superOverSnapshots || []).slice(-(MAX_UNDO_HISTORY - 1)), newSOSnapshot]
+
       return {
         ...state,
         superOver: so,
-        superOverHistory: [...(state.superOverHistory || []).slice(-(MAX_UNDO_HISTORY - 1)), soSnapshot],
+        superOverSnapshots: newSOSnapshots,
+        superOverSnapshotSeq: nextSOSeq,
       }
     }
 
-    case 'UNDO_SUPER_OVER_BALL': {
-      const history = state.superOverHistory || []
-      if (history.length === 0) return state
-      const prev = history[history.length - 1]
+    case 'UNDO_LAST_SUPER_OVER_BALL': {
+      const soSnaps = state.superOverSnapshots || []
+      if (soSnaps.length === 0) return state
+      const lastSOSnap = soSnaps[soSnaps.length - 1]
       return {
         ...state,
-        superOver: prev,
-        superOverHistory: history.slice(0, -1),
+        superOver: lastSOSnap.snapshot_data,
+        superOverSnapshots: soSnaps.slice(0, -1),
+      }
+    }
+
+    case 'UNDO_TO_SUPER_OVER_SNAPSHOT': {
+      const targetSOSeq = action.sequence
+      const soSnaps2 = state.superOverSnapshots || []
+      const soIdx = soSnaps2.findIndex(s => s.sequence === targetSOSeq)
+      if (soIdx === -1) return state
+      const targetSOSnap = soSnaps2[soIdx]
+      return {
+        ...state,
+        superOver: targetSOSnap.snapshot_data,
+        superOverSnapshots: soSnaps2.slice(0, soIdx),
       }
     }
 
@@ -705,7 +751,8 @@ export function matchReducer(state, action) {
           innings1: createSOInnings(),
           innings2: { ...createSOInnings(), target: 0 },
         },
-        superOverHistory: [],
+        superOverSnapshots: [],
+        superOverSnapshotSeq: 0,
         result: '',
       }
     }
@@ -715,20 +762,40 @@ export function matchReducer(state, action) {
       return { ...state, phase: 'match-over' }
     }
 
-    case 'UNDO_BALL': {
-      if (state.ballHistory.length === 0) return state
-      const prev = state.ballHistory[state.ballHistory.length - 1]
-      const remainingHistory = state.ballHistory.slice(0, -1)
+    case 'UNDO_LAST_BALL': {
+      // Find the last snapshot for the current innings
+      const snaps = state.inningsSnapshots
+      if (snaps.length === 0) return state
+      const lastSnap = snaps[snaps.length - 1]
       return {
         ...state,
-        innings: prev.innings,
-        phase: prev.phase,
-        cumulativeScores: prev.cumulativeScores,
-        cumulativeBoundaries: prev.cumulativeBoundaries,
-        target: prev.target,
-        result: prev.result,
-        lastBallWasNoBall: prev.lastBallWasNoBall,
-        ballHistory: remainingHistory,
+        innings: lastSnap.snapshot_data.innings,
+        phase: lastSnap.snapshot_data.phase,
+        cumulativeScores: lastSnap.snapshot_data.cumulativeScores,
+        cumulativeBoundaries: lastSnap.snapshot_data.cumulativeBoundaries,
+        target: lastSnap.snapshot_data.target,
+        result: lastSnap.snapshot_data.result,
+        lastBallWasNoBall: lastSnap.snapshot_data.lastBallWasNoBall,
+        inningsSnapshots: snaps.slice(0, -1),
+      }
+    }
+
+    case 'UNDO_TO_SNAPSHOT': {
+      const targetSeq = action.sequence
+      const allSnaps = state.inningsSnapshots
+      const snapIdx = allSnaps.findIndex(s => s.sequence === targetSeq)
+      if (snapIdx === -1) return state
+      const targetSnap = allSnaps[snapIdx]
+      return {
+        ...state,
+        innings: targetSnap.snapshot_data.innings,
+        phase: targetSnap.snapshot_data.phase,
+        cumulativeScores: targetSnap.snapshot_data.cumulativeScores,
+        cumulativeBoundaries: targetSnap.snapshot_data.cumulativeBoundaries,
+        target: targetSnap.snapshot_data.target,
+        result: targetSnap.snapshot_data.result,
+        lastBallWasNoBall: targetSnap.snapshot_data.lastBallWasNoBall,
+        inningsSnapshots: allSnaps.slice(0, snapIdx),
       }
     }
 
@@ -778,8 +845,10 @@ export function matchReducer(state, action) {
       return restoreInningsDefaults({
         ...initialState,
         ...restored,
-        ballHistory: state.ballHistory || [],
-        superOverHistory: state.superOverHistory || [],
+        inningsSnapshots: state.inningsSnapshots || [],
+        snapshotSequence: state.snapshotSequence || 0,
+        superOverSnapshots: state.superOverSnapshots || [],
+        superOverSnapshotSeq: state.superOverSnapshotSeq || 0,
       })
     }
 
@@ -827,8 +896,8 @@ function loadSavedState(key) {
     const parsed = JSON.parse(saved)
     // Validate it has the expected shape
     if (parsed && parsed.phase && parsed.innings) {
-      // ballHistory is not persisted (large, transient) — restore empty
-      return restoreInningsDefaults({ ...initialState, ...parsed, ballHistory: [], superOverHistory: [] })
+      // Snapshots are not persisted (large, transient) — restore empty
+      return restoreInningsDefaults({ ...initialState, ...parsed, inningsSnapshots: [], snapshotSequence: 0, superOverSnapshots: [], superOverSnapshotSeq: 0 })
     }
   } catch {
     // Corrupted data — ignore
@@ -851,9 +920,9 @@ function saveState(state, key) {
       localStorage.removeItem(key)
       return
     }
-    // Omit ballHistory from persistence (large, transient)
+    // Omit snapshots from persistence (large, transient)
     // eslint-disable-next-line no-unused-vars
-    const { ballHistory, superOverHistory, _lastWriteTime, ...toSave } = state
+    const { inningsSnapshots, superOverSnapshots, snapshotSequence, superOverSnapshotSeq, _lastWriteTime, ...toSave } = state
     localStorage.setItem(key, JSON.stringify(toSave))
   } catch {
     // Storage full or unavailable — silently ignore
@@ -892,7 +961,9 @@ function buildInitialState(initialConfig) {
 export function MatchProvider({ children, matchId, onMatchComplete, initialConfig }) {
   const storageKey = getStorageKey(matchId)
   const onMatchCompleteRef = useRef(onMatchComplete)
-  onMatchCompleteRef.current = onMatchComplete
+  useEffect(() => {
+    onMatchCompleteRef.current = onMatchComplete
+  })
 
   const [state, dispatch] = useReducer(matchReducer, initialState, () => {
     const saved = loadSavedState(storageKey)
@@ -913,7 +984,7 @@ export function MatchProvider({ children, matchId, onMatchComplete, initialConfi
   const filterBeforeWrite = useCallback((s) => {
     if (s.phase === 'setup') return null
     // eslint-disable-next-line no-unused-vars
-    const { ballHistory, superOverHistory, _lastWriteTime, ...rest } = s
+    const { inningsSnapshots, superOverSnapshots, snapshotSequence: _seq, superOverSnapshotSeq: _soSeq, _lastWriteTime, ...rest } = s
     return rest
   }, [])
 
@@ -933,65 +1004,78 @@ export function MatchProvider({ children, matchId, onMatchComplete, initialConfi
     }
   }, [state, state.phase])
 
-  const value = {
+  const currentInningsSnapshots = state.inningsSnapshots.filter(s => s.inningsIndex === state.currentInnings)
+  const canUndo = currentInningsSnapshots.length > 0
+  const canUndoSuperOver = (state.superOverSnapshots || []).length > 0
+
+  const getRunRateFn = useCallback(() => {
+    const inn = state.innings[state.currentInnings]
+    if (!inn) return '0.00'
+    return getRunRate(inn.totalRuns, inn.oversCompleted, inn.ballsInCurrentOver)
+  }, [state])
+
+  const getRequiredRunRateFn = useCallback(() => {
+    if (state.currentInnings !== 3) return null
+    const inn = state.innings[3]
+    if (!inn) return null
+    const battingKey = getTeamKey(state, inn.battingTeam)
+    const bowlingKey = getTeamKey(state, inn.bowlingTeam)
+    const target = state.cumulativeScores[bowlingKey] + 1 - state.cumulativeScores[battingKey]
+    if (target <= 0) return null
+    return getRequiredRunRate(target, inn.totalRuns, state.oversPerInnings, inn.oversCompleted, inn.ballsInCurrentOver)
+  }, [state])
+
+  const getCumulativeTargetFn = useCallback(() => {
+    if (state.currentInnings !== 3) return null
+    const inn = state.innings[3]
+    if (!inn) return null
+    const bowlingKey = getTeamKey(state, inn.bowlingTeam)
+    const battingKey = getTeamKey(state, inn.battingTeam)
+    return state.cumulativeScores[bowlingKey] + 1 - state.cumulativeScores[battingKey]
+  }, [state])
+
+  const getLiveCumulativeFn = useCallback(() => {
+    const inn = state.innings[state.currentInnings]
+    if (!inn) return 0
+    const battingKey = getTeamKey(state, inn.battingTeam)
+    return state.cumulativeScores[battingKey] + inn.totalRuns
+  }, [state])
+
+  const getNRRFn = useCallback((teamKey) => {
+    let runsScored = 0, oversFaced = 0
+    let runsConceded = 0, oversBowled = 0
+    const teamName = teamKey === 'team1' ? state.team1 : state.team2
+    state.innings.forEach(inn => {
+      if (!inn || inn.totalRuns === undefined) return
+      const completedOvers = inn.oversCompleted + inn.ballsInCurrentOver / BALLS_PER_OVER
+      if (inn.battingTeam === teamName) {
+        runsScored += inn.totalRuns
+        oversFaced += inn.wickets >= MAX_WICKETS ? state.oversPerInnings : completedOvers
+      } else if (inn.bowlingTeam === teamName) {
+        runsConceded += inn.totalRuns
+        oversBowled += inn.wickets >= MAX_WICKETS ? state.oversPerInnings : completedOvers
+      }
+    })
+    if (oversFaced === 0 || oversBowled === 0) return '0.000'
+    const nrr = (runsScored / oversFaced) - (runsConceded / oversBowled)
+    if (!isFinite(nrr)) return '0.000'
+    return nrr.toFixed(3)
+  }, [state])
+
+  const value = useMemo(() => ({
     ...state,
     dispatch,
-    canUndo: state.ballHistory.length > 0,
-    canUndoSuperOver: (state.superOverHistory || []).length > 0,
-    getRunRate: () => {
-      const inn = state.innings[state.currentInnings]
-      if (!inn) return '0.00'
-      return getRunRate(inn.totalRuns, inn.oversCompleted, inn.ballsInCurrentOver)
-    },
-    getRequiredRunRate: () => {
-      // In 4th innings, target is based on cumulative
-      if (state.currentInnings !== 3) return null
-      const inn = state.innings[3]
-      if (!inn) return null
-      const battingKey = getTeamKey(state, inn.battingTeam)
-      const bowlingKey = getTeamKey(state, inn.bowlingTeam)
-      const target = state.cumulativeScores[bowlingKey] + 1 - state.cumulativeScores[battingKey]
-      if (target <= 0) return null
-      return getRequiredRunRate(target, inn.totalRuns, state.oversPerInnings, inn.oversCompleted, inn.ballsInCurrentOver)
-    },
-    getCumulativeTarget: () => {
-      if (state.currentInnings !== 3) return null
-      const inn = state.innings[3]
-      if (!inn) return null
-      const bowlingKey = getTeamKey(state, inn.bowlingTeam)
-      const battingKey = getTeamKey(state, inn.battingTeam)
-      return state.cumulativeScores[bowlingKey] + 1 - state.cumulativeScores[battingKey]
-    },
-    getLiveCumulative: () => {
-      const inn = state.innings[state.currentInnings]
-      if (!inn) return 0
-      const battingKey = getTeamKey(state, inn.battingTeam)
-      return state.cumulativeScores[battingKey] + inn.totalRuns
-    },
-    getNRR: (teamKey) => {
-      // NRR = (runs scored / overs faced) - (runs conceded / overs bowled)
-      let runsScored = 0, oversFaced = 0
-      let runsConceded = 0, oversBowled = 0
-      const teamName = teamKey === 'team1' ? state.team1 : state.team2
-      state.innings.forEach(inn => {
-        if (!inn || inn.totalRuns === undefined) return
-        const completedOvers = inn.oversCompleted + inn.ballsInCurrentOver / BALLS_PER_OVER
-        if (inn.battingTeam === teamName) {
-          runsScored += inn.totalRuns
-          oversFaced += inn.wickets >= MAX_WICKETS ? state.oversPerInnings : completedOvers
-        } else if (inn.bowlingTeam === teamName) {
-          runsConceded += inn.totalRuns
-          oversBowled += inn.wickets >= MAX_WICKETS ? state.oversPerInnings : completedOvers
-        }
-      })
-      if (oversFaced === 0 || oversBowled === 0) return '0.000'
-      const nrr = (runsScored / oversFaced) - (runsConceded / oversBowled)
-      if (!isFinite(nrr)) return '0.000'
-      return nrr.toFixed(3)
-    },
+    canUndo,
+    canUndoSuperOver,
+    currentInningsSnapshots,
+    getRunRate: getRunRateFn,
+    getRequiredRunRate: getRequiredRunRateFn,
+    getCumulativeTarget: getCumulativeTargetFn,
+    getLiveCumulative: getLiveCumulativeFn,
+    getNRR: getNRRFn,
     getTeamKey,
     getOrdinal,
-  }
+  }), [state, canUndo, canUndoSuperOver, currentInningsSnapshots, getRunRateFn, getRequiredRunRateFn, getCumulativeTargetFn, getLiveCumulativeFn, getNRRFn])
 
   return <MatchContext.Provider value={value}>{children}</MatchContext.Provider>
 }

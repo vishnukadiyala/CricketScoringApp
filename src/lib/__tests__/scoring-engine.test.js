@@ -688,25 +688,25 @@ describe('Free Hit', () => {
 })
 
 describe('Undo', () => {
-  it('should restore previous state exactly on UNDO_BALL', () => {
+  it('should restore previous state exactly on UNDO_LAST_BALL', () => {
     let state = setupMatch()
     const before = state
     state = scoreBall(state, { runs: 4 })
     expect(state.innings[0].totalRuns).toBe(4)
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
 
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(0)
     expect(state.innings[0].batsmen[0].runs).toBe(0)
     expect(state.innings[0].batsmen[0].balls).toBe(0)
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
     expect(state.phase).toBe(before.phase)
   })
 
-  it('should do nothing when UNDO_BALL with no history', () => {
+  it('should do nothing when UNDO_LAST_BALL with no history', () => {
     const state = setupMatch()
-    expect(state.ballHistory.length).toBe(0)
-    const next = matchReducer(state, { type: 'UNDO_BALL' })
+    expect(state.inningsSnapshots.length).toBe(0)
+    const next = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(next).toBe(state) // Exact same reference
   })
 
@@ -716,21 +716,21 @@ describe('Undo', () => {
     state = scoreBall(state, { runs: 4 })
     state = scoreBall(state, { runs: 6 })
     expect(state.innings[0].totalRuns).toBe(11)
-    expect(state.ballHistory.length).toBe(3)
+    expect(state.inningsSnapshots.length).toBe(3)
 
     // Undo the 6
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(5)
-    expect(state.ballHistory.length).toBe(2)
+    expect(state.inningsSnapshots.length).toBe(2)
 
     // Undo the 4
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(1)
-    expect(state.ballHistory.length).toBe(1)
+    expect(state.inningsSnapshots.length).toBe(1)
 
     // Undo the 1
-    state = matchReducer(state, { type: 'UNDO_BALL' })
+    state = matchReducer(state, { type: 'UNDO_LAST_BALL' })
     expect(state.innings[0].totalRuns).toBe(0)
-    expect(state.ballHistory.length).toBe(0)
+    expect(state.inningsSnapshots.length).toBe(0)
   })
 })

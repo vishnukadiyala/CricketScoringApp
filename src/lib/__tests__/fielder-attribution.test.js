@@ -31,7 +31,7 @@ function getInn(state) {
 }
 
 function undo(state) {
-  return matchReducer(state, { type: 'UNDO_BALL' })
+  return matchReducer(state, { type: 'UNDO_LAST_BALL' })
 }
 
 // ─── Dismissal String Generation ────────────────────────────
