@@ -673,8 +673,8 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Reset */}
-        <div className="card" style={{ marginTop: '16px' }}>
+        {/* Reset — owner only */}
+        {(!isAuthEnabled || isOwner) && <div className="card" style={{ marginTop: '16px' }}>
           {!showResetConfirm ? (
             <button
               className="btn btn-danger btn-block"
@@ -693,7 +693,7 @@ export default function AdminPage() {
               </div>
             </>
           )}
-        </div>
+        </div>}
       </main>
     </div>
   )
