@@ -745,6 +745,45 @@ export function matchReducer(state, action) {
         return obj
       }
       const restored = deepConvert(cleaned)
+      // Firebase drops empty arrays — restore missing array fields in innings
+      if (restored.innings) {
+        restored.innings = (Array.isArray(restored.innings) ? restored.innings : Object.values(restored.innings)).map(inn => {
+          if (!inn) return inn
+          return {
+            ...inn,
+            currentOver: inn.currentOver || [],
+            allOvers: inn.allOvers || [],
+            batsmen: inn.batsmen || [],
+            bowlers: inn.bowlers || [],
+            fallOfWickets: inn.fallOfWickets || [],
+          }
+        })
+      }
+      // Restore other potentially missing arrays
+      if (restored.inningsOrder && !Array.isArray(restored.inningsOrder)) {
+        restored.inningsOrder = Object.values(restored.inningsOrder)
+      }
+      if (restored.squads) {
+        restored.squads = {
+          team1: restored.squads.team1 || [],
+          team2: restored.squads.team2 || [],
+        }
+      }
+      if (restored.activeRosters) {
+        restored.activeRosters = {
+          team1: restored.activeRosters.team1 || [],
+          team2: restored.activeRosters.team2 || [],
+        }
+      }
+      if (restored.substitutions) {
+        restored.substitutions = {
+          team1: restored.substitutions.team1 || [],
+          team2: restored.substitutions.team2 || [],
+        }
+      }
+      if (restored.inningsTimers && !Array.isArray(restored.inningsTimers)) {
+        restored.inningsTimers = typeof restored.inningsTimers === 'object' ? restored.inningsTimers : {}
+      }
       return { ...initialState, ...restored, ballHistory: [], superOverHistory: [] }
     }
 
