@@ -21,16 +21,9 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="card" style={{ margin: 16, textAlign: 'center' }}>
           <h2 style={{ color: 'var(--danger)' }}>Something went wrong</h2>
-          {import.meta.env.DEV && (
-            <>
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, marginTop: 12, color: 'var(--text)', textAlign: 'left' }}>
-                {this.state.error?.message || 'Unknown error'}
-              </pre>
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: 11, marginTop: 8, color: 'var(--text-muted)', textAlign: 'left' }}>
-                {this.state.error?.stack || 'No stack trace available'}
-              </pre>
-            </>
-          )}
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, marginTop: 12, color: 'var(--text)', textAlign: 'left' }}>
+            {this.state.error?.message || 'Unknown error'}
+          </pre>
           <button
             className="btn btn-primary btn-block"
             onClick={() => this.setState({ hasError: false, error: null })}
