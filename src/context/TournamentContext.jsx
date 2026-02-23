@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useEffect, useCallback } from 'r
 import { loadTournament, saveTournament } from '../lib/storage'
 import { DEFAULT_OVERS_PER_INNINGS } from '../lib/constants'
 import { useFirebaseSync } from '../lib/useFirebaseSync'
+import { migrateSquad, generatePlayerId } from '../lib/squadUtils'
 
 const TournamentContext = createContext()
 
@@ -13,6 +14,7 @@ export const initialTournamentState = {
   activeMatchId: null,
   phase: 'setup', // 'setup' | 'league' | 'eliminator' | 'final' | 'completed'
   spiritNotes: {}, // { matchId: string }
+  squadChanges: [], // audit log of squad modifications
 }
 
 function generateLeagueSchedule(teams) {
@@ -47,7 +49,7 @@ export function tournamentReducer(state, action) {
     case 'ADD_TEAM': {
       if (state.teams.length >= 3) return state
       const newId = `team_${state.teams.length + 1}`
-      const newTeams = [...state.teams, { id: newId, name: action.name, squad: action.squad || [] }]
+      const newTeams = [...state.teams, { id: newId, name: action.name, squad: migrateSquad(action.squad || []) }]
 
       // Auto-generate league schedule when 3rd team is added
       if (newTeams.length === 3) {
@@ -65,7 +67,7 @@ export function tournamentReducer(state, action) {
     case 'EDIT_TEAM': {
       const newTeams = state.teams.map(t =>
         t.id === action.teamId
-          ? { ...t, name: action.name !== undefined ? action.name : t.name, squad: action.squad !== undefined ? action.squad : t.squad }
+          ? { ...t, name: action.name !== undefined ? action.name : t.name, squad: action.squad !== undefined ? migrateSquad(action.squad) : t.squad }
           : t
       )
       // If teams already = 3, regenerate schedule names (update team refs)
@@ -154,6 +156,111 @@ export function tournamentReducer(state, action) {
       }
     }
 
+    case 'ADD_PLAYER': {
+      const { teamId, playerName, reason, changedBy } = action
+      const newPlayer = { id: generatePlayerId(), name: playerName, status: 'active' }
+      const newTeams = state.teams.map(t =>
+        t.id === teamId ? { ...t, squad: [...t.squad, newPlayer] } : t
+      )
+      const logEntry = {
+        id: `sc_${Date.now()}`,
+        teamId,
+        action: 'add',
+        playerIn: playerName,
+        playerOut: null,
+        reason: reason || '',
+        changedBy: changedBy || '',
+        timestamp: Date.now(),
+      }
+      return { ...state, teams: newTeams, squadChanges: [...state.squadChanges, logEntry] }
+    }
+
+    case 'REMOVE_PLAYER': {
+      const { teamId, playerId, reason, changedBy } = action
+      let removedName = ''
+      const newTeams = state.teams.map(t => {
+        if (t.id !== teamId) return t
+        return {
+          ...t,
+          squad: t.squad.map(p => {
+            if (p.id === playerId) {
+              removedName = p.name
+              return { ...p, status: 'inactive' }
+            }
+            return p
+          }),
+        }
+      })
+      const logEntry = {
+        id: `sc_${Date.now()}`,
+        teamId,
+        action: 'remove',
+        playerIn: null,
+        playerOut: removedName,
+        reason: reason || '',
+        changedBy: changedBy || '',
+        timestamp: Date.now(),
+      }
+      return { ...state, teams: newTeams, squadChanges: [...state.squadChanges, logEntry] }
+    }
+
+    case 'REPLACE_PLAYER': {
+      const { teamId, playerId, newPlayerName, reason, changedBy } = action
+      let replacedName = ''
+      const replacement = { id: generatePlayerId(), name: newPlayerName, status: 'active' }
+      const newTeams = state.teams.map(t => {
+        if (t.id !== teamId) return t
+        const updatedSquad = t.squad.map(p => {
+          if (p.id === playerId) {
+            replacedName = p.name
+            return { ...p, status: 'inactive' }
+          }
+          return p
+        })
+        return { ...t, squad: [...updatedSquad, replacement] }
+      })
+      const logEntry = {
+        id: `sc_${Date.now()}`,
+        teamId,
+        action: 'replace',
+        playerIn: newPlayerName,
+        playerOut: replacedName,
+        reason: reason || '',
+        changedBy: changedBy || '',
+        timestamp: Date.now(),
+      }
+      return { ...state, teams: newTeams, squadChanges: [...state.squadChanges, logEntry] }
+    }
+
+    case 'EDIT_PLAYER': {
+      const { teamId, playerId, newName, reason, changedBy } = action
+      let oldName = ''
+      const newTeams = state.teams.map(t => {
+        if (t.id !== teamId) return t
+        return {
+          ...t,
+          squad: t.squad.map(p => {
+            if (p.id === playerId) {
+              oldName = p.name
+              return { ...p, name: newName }
+            }
+            return p
+          }),
+        }
+      })
+      const logEntry = {
+        id: `sc_${Date.now()}`,
+        teamId,
+        action: 'edit',
+        playerIn: newName,
+        playerOut: oldName,
+        reason: reason || '',
+        changedBy: changedBy || '',
+        timestamp: Date.now(),
+      }
+      return { ...state, teams: newTeams, squadChanges: [...state.squadChanges, logEntry] }
+    }
+
     case 'SET_SPIRIT_NOTE': {
       return {
         ...state,
@@ -173,7 +280,17 @@ export function tournamentReducer(state, action) {
       if (!remote || !remote.teams || !remote.matches) return state
       // eslint-disable-next-line no-unused-vars
       const { _lastWriteTime, ...cleaned } = remote
-      return { ...initialTournamentState, ...cleaned }
+      // Migrate remote squads and preserve squadChanges
+      const migratedTeams = (cleaned.teams || []).map(t => ({
+        ...t,
+        squad: migrateSquad(t.squad),
+      }))
+      return {
+        ...initialTournamentState,
+        ...cleaned,
+        teams: migratedTeams,
+        squadChanges: cleaned.squadChanges || state.squadChanges || [],
+      }
     }
 
     default:
@@ -223,7 +340,15 @@ function getQuickStandings(teams, leagueMatches) {
 
 export function TournamentProvider({ children }) {
   const [state, dispatch] = useReducer(tournamentReducer, initialTournamentState, () => {
-    return loadTournament() || initialTournamentState
+    const saved = loadTournament()
+    if (!saved) return initialTournamentState
+    // Migrate legacy string[] squads on load
+    return {
+      ...initialTournamentState,
+      ...saved,
+      teams: (saved.teams || []).map(t => ({ ...t, squad: migrateSquad(t.squad) })),
+      squadChanges: saved.squadChanges || [],
+    }
   })
 
   useEffect(() => {

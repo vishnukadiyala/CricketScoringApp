@@ -1,5 +1,6 @@
 import { BALLS_PER_OVER, MAX_WICKETS } from './constants'
 import { loadMatch } from './storage'
+import { getActivePlayerNames, countActivePlayers } from './squadUtils'
 
 // ─── Data Loading ───────────────────────────────────────────────
 
@@ -211,9 +212,9 @@ export function getMostSixes(battingStats) {
 }
 
 /**
- * Best strike rate (min 20 balls).
+ * Best strike rate (min 10 balls).
  */
-export function getBestStrikeRate(battingStats, minBalls = 20) {
+export function getBestStrikeRate(battingStats, minBalls = 10) {
   return [...battingStats]
     .filter(p => p.balls >= minBalls)
     .sort((a, b) => b.strikeRate - a.strikeRate)
@@ -879,7 +880,8 @@ export function computeParticipation(matchData, teams) {
     ).length
 
     const playerMatches = {}
-    team.squad.forEach(name => {
+    const activeNames = getActivePlayerNames(team.squad)
+    activeNames.forEach(name => {
       playerMatches[name] = 0
     })
 
@@ -918,14 +920,15 @@ export function computeParticipation(matchData, teams) {
       return sum + (matchState.substitutions[teamKey]?.length || 0)
     }, 0) / (totalMatches || 1)
 
+    const activeCount = countActivePlayers(team.squad)
     result[team.id] = {
       teamId: team.id,
       team: team.name,
       totalMatches,
-      squad: team.squad,
+      squad: activeNames,
       playerMatches,
       uniquePlayers,
-      squadUtilization: team.squad.length > 0 ? (uniquePlayers / team.squad.length) * 100 : 0,
+      squadUtilization: activeCount > 0 ? (uniquePlayers / activeCount) * 100 : 0,
       avgSubstitutionsPerMatch: avgSubs,
     }
   })

@@ -2473,6 +2473,46 @@ button:focus-visible {
   text-transform: uppercase;
 }
 
+/* Qualifier badges in Player Modal */
+.modal-qualifiers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.modal-qualifier-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.modal-qualifier-stat {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.qualifier-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qualifier-met {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.qualifier-unmet {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--four);
+}
+
 /* ===== SYNC STATUS ===== */
 .sync-status {
   display: inline-flex;
@@ -2517,6 +2557,283 @@ button:focus-visible {
 @keyframes sync-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+/* ===== AUTH ===== */
+.auth-card {
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.auth-card h2 {
+  text-align: center;
+}
+
+.auth-hint {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.btn-auth-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.btn-auth-toggle:hover {
+  color: var(--primary);
+}
+
+.auth-loading {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Nav logout */
+.nav-logout {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.nav-logout:hover {
+  color: var(--danger) !important;
+}
+
+/* Player Account List */
+.player-account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.player-account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.player-account-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.player-account-email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ===== SQUAD MANAGEMENT ===== */
+.squad-player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.squad-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.squad-player-row:hover {
+  background: var(--surface-light);
+}
+
+.squad-player-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.squad-player-btns {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.squad-player-row:hover .squad-player-btns {
+  opacity: 1;
+}
+
+/* Always show on touch devices */
+@media (hover: none) {
+  .squad-player-btns {
+    opacity: 1;
+  }
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--surface-light);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  background: var(--primary);
+  color: var(--on-dark);
+}
+
+.btn-icon-danger:hover {
+  background: var(--danger);
+  color: var(--on-dark);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.squad-player-inactive {
+  opacity: 0.5;
+}
+
+.squad-player-inactive .squad-player-name {
+  text-decoration: line-through;
+}
+
+.released-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+
+.squad-inactive-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.squad-edit-inline,
+.squad-add-form {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--surface-light);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.squad-change-log {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.squad-change-entry {
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.squad-change-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.squad-change-action {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.squad-change-add {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--success);
+}
+
+.squad-change-remove {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--danger);
+}
+
+.squad-change-replace {
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--primary);
+}
+
+.squad-change-edit {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--four);
+}
+
+.squad-change-team {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.squad-change-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.squad-change-detail {
+  color: var(--text);
+}
+
+.squad-change-reason {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.squad-change-by {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 /* ===== RESPONSIVE — wider layout for dashboard on desktop ===== */

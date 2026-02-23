@@ -2,6 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTournament } from '../context/TournamentContext'
 import { MatchProvider } from '../context/MatchContext'
 import { extractTeamSummaries } from '../lib/standings'
+import { getActivePlayerNames } from '../lib/squadUtils'
 import { useEffect, useRef } from 'react'
 import ErrorBoundary from '../components/ErrorBoundary'
 import MatchSetup from '../components/MatchSetup'
@@ -43,8 +44,8 @@ export default function MatchScoringPage() {
     team1: team1?.name || '',
     team2: team2?.name || '',
     oversPerInnings,
-    squad1: team1?.squad || [],
-    squad2: team2?.squad || [],
+    squad1: getActivePlayerNames(team1?.squad || []),
+    squad2: getActivePlayerNames(team2?.squad || []),
   }
 
   const handleComplete = (matchState) => {

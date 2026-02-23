@@ -332,7 +332,7 @@ function BattingTab({ battingStats, bowlingStats, onPlayerClick }) {
 
       {subView === 'best-sr' && (
         <div className="card">
-          <h2>Best Strike Rate <span className="qualifier">(min 20 balls)</span></h2>
+          <h2>Best Strike Rate <span className="qualifier">(min. 10 balls faced)</span></h2>
           <div className="table-wrapper">
             <table className="stats-table">
               <thead>
@@ -1158,6 +1158,18 @@ function ParticipationTab({ matchData, teams }) {
 
 // ─── PLAYER PROFILE MODAL ───────────────────────────────────────
 
+function QualifierBadge({ current, required, unit }) {
+  const qualifies = current >= required
+  return (
+    <span className={`qualifier-badge ${qualifies ? 'qualifier-met' : 'qualifier-unmet'}`}>
+      {qualifies
+        ? `Qualified (${current} ${unit})`
+        : `${current}/${required} ${unit} to qualify`
+      }
+    </span>
+  )
+}
+
 function PlayerModal({ player, onClose }) {
   const { batting, bowling, name, team } = player
 
@@ -1185,6 +1197,17 @@ function PlayerModal({ player, onClose }) {
               <div className="modal-stat"><span className="modal-stat-value">{batting.sixes}</span><span className="modal-stat-label">6s</span></div>
               <div className="modal-stat"><span className="modal-stat-value">{batting.highScore}{batting.highScoreNotOut ? '*' : ''}</span><span className="modal-stat-label">HS</span></div>
               <div className="modal-stat"><span className="modal-stat-value">{batting.notOuts}</span><span className="modal-stat-label">NO</span></div>
+            </div>
+
+            <div className="modal-qualifiers">
+              <div className="modal-qualifier-row">
+                <span className="modal-qualifier-stat">Strike Rate</span>
+                <QualifierBadge current={batting.balls} required={10} unit="balls" />
+              </div>
+              <div className="modal-qualifier-row">
+                <span className="modal-qualifier-stat">Batting Avg</span>
+                <QualifierBadge current={batting.innings} required={2} unit="innings" />
+              </div>
             </div>
 
             {batting.inningsList && batting.inningsList.length > 0 && (
@@ -1234,6 +1257,13 @@ function PlayerModal({ player, onClose }) {
               <div className="modal-stat"><span className="modal-stat-value">{bowling.wickets > 0 ? fmtAvg(bowling.bowlingAverage) : '-'}</span><span className="modal-stat-label">Average</span></div>
               <div className="modal-stat"><span className="modal-stat-value">{bowling.bestFigures}</span><span className="modal-stat-label">BBI</span></div>
               <div className="modal-stat"><span className="modal-stat-value">{bowling.maidens}</span><span className="modal-stat-label">Maidens</span></div>
+            </div>
+
+            <div className="modal-qualifiers">
+              <div className="modal-qualifier-row">
+                <span className="modal-qualifier-stat">Economy Rate</span>
+                <QualifierBadge current={bowling.overs} required={6} unit="overs" />
+              </div>
             </div>
 
             {bowling.figuresList && bowling.figuresList.length > 0 && (

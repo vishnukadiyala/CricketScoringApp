@@ -162,14 +162,14 @@ describe('computeBattingLeaderboard', () => {
     expect(a1.notOuts).toBe(1)
   })
 
-  it('applies minimum balls filter for best strike rate', () => {
+  it('includes player with exactly 10 balls in SR leaderboard (new threshold)', () => {
     const data = [
       makeMatchData(
         makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
         makeMatchState('Alpha', 'Beta', [
           makeInnings('Alpha', 'Beta', [
-            makeBatsman('A1', 10, 5, 1, 0, true),   // SR 200, only 5 balls
-            makeBatsman('A2', 30, 25, 3, 1, false),  // SR 120, 25 balls
+            makeBatsman('A1', 20, 10, 2, 0, true),   // SR 200, exactly 10 balls — should qualify
+            makeBatsman('A2', 30, 25, 3, 1, false),   // SR 120, 25 balls
           ], []),
           null, null, null,
         ])
@@ -177,12 +177,53 @@ describe('computeBattingLeaderboard', () => {
     ]
 
     const batting = computeBattingLeaderboard(data, teams)
-    const bestSR = getBestStrikeRate(batting, 20) // min 20 balls
+    const bestSR = getBestStrikeRate(batting) // default min 10 balls
 
-    // A1 has only 5 balls, should be filtered out
+    expect(bestSR.find(p => p.name === 'A1')).toBeDefined()
+    expect(bestSR[0].name).toBe('A1')
+    expect(bestSR[0].strikeRate).toBeCloseTo(200, 0)
+  })
+
+  it('excludes player with 9 balls from SR leaderboard', () => {
+    const data = [
+      makeMatchData(
+        makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
+        makeMatchState('Alpha', 'Beta', [
+          makeInnings('Alpha', 'Beta', [
+            makeBatsman('A1', 18, 9, 2, 0, true),    // SR 200, only 9 balls — should NOT qualify
+            makeBatsman('A2', 30, 25, 3, 1, false),   // SR 120, 25 balls
+          ], []),
+          null, null, null,
+        ])
+      ),
+    ]
+
+    const batting = computeBattingLeaderboard(data, teams)
+    const bestSR = getBestStrikeRate(batting) // default min 10 balls
+
     expect(bestSR.find(p => p.name === 'A1')).toBeUndefined()
     expect(bestSR[0].name).toBe('A2')
-    expect(bestSR[0].strikeRate).toBeCloseTo(120, 0)
+  })
+
+  it('old threshold of 20 no longer applies — player with 15 balls qualifies', () => {
+    const data = [
+      makeMatchData(
+        makeMatchMeta('m1', 1, 'league', 'team_1', 'team_2'),
+        makeMatchState('Alpha', 'Beta', [
+          makeInnings('Alpha', 'Beta', [
+            makeBatsman('A1', 25, 15, 3, 0, true),   // SR 166.7, 15 balls — would fail old 20-ball threshold
+          ], []),
+          null, null, null,
+        ])
+      ),
+    ]
+
+    const batting = computeBattingLeaderboard(data, teams)
+    const bestSR = getBestStrikeRate(batting) // default min 10 balls
+
+    // With old threshold of 20, this player would be excluded. Now they qualify.
+    expect(bestSR.find(p => p.name === 'A1')).toBeDefined()
+    expect(bestSR[0].strikeRate).toBeCloseTo(166.7, 0)
   })
 
   it('applies minimum innings filter for best average', () => {

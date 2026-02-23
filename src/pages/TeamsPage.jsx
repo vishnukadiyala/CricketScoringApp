@@ -1,6 +1,7 @@
 import { useTournament } from '../context/TournamentContext'
 import { aggregatePlayerStats } from '../lib/playerStats'
 import { loadMatch } from '../lib/storage'
+import { getActivePlayerNames, countActivePlayers } from '../lib/squadUtils'
 
 export default function TeamsPage() {
   const { teams, matches } = useTournament()
@@ -38,7 +39,7 @@ export default function TeamsPage() {
           return (
             <div key={team.id} className="card team-card">
               <h2>{team.name}</h2>
-              <p className="subtitle">Squad: {team.squad.length} players</p>
+              <p className="subtitle">Squad: {countActivePlayers(team.squad)} players</p>
 
               {stats.length > 0 ? (
                 <div className="table-wrapper">
@@ -75,7 +76,7 @@ export default function TeamsPage() {
                 </div>
               ) : (
                 <div className="team-roster">
-                  {team.squad.map((player, i) => (
+                  {getActivePlayerNames(team.squad).map((player, i) => (
                     <span key={i} className="chip">{player}</span>
                   ))}
                 </div>

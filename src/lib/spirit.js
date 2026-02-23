@@ -3,6 +3,7 @@
  */
 
 import { loadMatch } from './storage'
+import { countActivePlayers } from './squadUtils'
 
 /**
  * Compute rotation diversity for each team.
@@ -50,7 +51,7 @@ export function computeRotationDiversity(teams, matches) {
       totalSlots += playedNames.size
     }
 
-    const squadSize = team.squad?.length || 0
+    const squadSize = countActivePlayers(team.squad)
     const diversityPct = squadSize > 0
       ? Math.round((uniquePlayers.size / squadSize) * 100)
       : 0
