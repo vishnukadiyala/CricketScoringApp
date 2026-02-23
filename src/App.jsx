@@ -1,26 +1,34 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import NavBar from './components/NavBar'
 import ProtectedRoute from './components/ProtectedRoute'
-import Dashboard from './pages/Dashboard'
-import MatchPage from './pages/MatchPage'
-import MatchScoringPage from './pages/MatchScoringPage'
-import TeamsPage from './pages/TeamsPage'
-import AdminPage from './pages/AdminPage'
-import StatsPage from './pages/StatsPage'
-import LoginPage from './pages/LoginPage'
+
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const MatchPage = lazy(() => import('./pages/MatchPage'))
+const MatchScoringPage = lazy(() => import('./pages/MatchScoringPage'))
+const TeamsPage = lazy(() => import('./pages/TeamsPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const StatsPage = lazy(() => import('./pages/StatsPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+
+function PageLoader() {
+  return <div className="app"><main className="app-main"><div className="card" style={{ textAlign: 'center' }}>Loading...</div></main></div>
+}
 
 export default function App() {
   return (
     <>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/match/:id" element={<ProtectedRoute><MatchPage /></ProtectedRoute>} />
-        <Route path="/match/:id/score" element={<ProtectedRoute requiredRole="organizer"><MatchScoringPage /></ProtectedRoute>} />
-        <Route path="/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
-        <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute requiredRole="organizer"><AdminPage /></ProtectedRoute>} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/match/:id" element={<ProtectedRoute><MatchPage /></ProtectedRoute>} />
+          <Route path="/match/:id/score" element={<ProtectedRoute requiredRole="organizer"><MatchScoringPage /></ProtectedRoute>} />
+          <Route path="/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
+          <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute requiredRole="organizer"><AdminPage /></ProtectedRoute>} />
+        </Routes>
+      </Suspense>
       <NavBar />
     </>
   )

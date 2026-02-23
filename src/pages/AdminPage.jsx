@@ -368,6 +368,7 @@ export default function AdminPage() {
                             <button
                               className="btn-icon"
                               title="Edit name"
+                              aria-label={`Edit ${p.name}`}
                               onClick={() => {
                                 setEditingPlayer({ teamId: team.id, playerId: p.id })
                                 setEditPlayerName(p.name)
@@ -380,6 +381,7 @@ export default function AdminPage() {
                             <button
                               className="btn-icon"
                               title="Replace"
+                              aria-label={`Replace ${p.name}`}
                               onClick={() => {
                                 setReplacingPlayer({ teamId: team.id, playerId: p.id, oldName: p.name })
                                 setReplacePlayerName('')
@@ -392,6 +394,7 @@ export default function AdminPage() {
                             <button
                               className="btn-icon btn-icon-danger"
                               title="Remove"
+                              aria-label={`Remove ${p.name}`}
                               onClick={() => {
                                 setConfirmRemove({ teamId: team.id, playerId: p.id, name: p.name })
                                 setRemoveReason('')
@@ -580,6 +583,7 @@ export default function AdminPage() {
           <div className="card">
             <button
               className="btn btn-outline btn-block"
+              aria-expanded={showChangeLog}
               onClick={() => setShowChangeLog(!showChangeLog)}
             >
               Squad Change Log ({changeLog.length}) {showChangeLog ? '\u25B2' : '\u25BC'}

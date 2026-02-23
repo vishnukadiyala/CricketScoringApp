@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { db, isFirebaseConfigured, isSpectatorMode, ref, set, onValue, off } from './firebase'
 
 export function useFirebaseSync(path, localState, onRemoteUpdate, options = {}) {
@@ -9,7 +9,9 @@ export function useFirebaseSync(path, localState, onRemoteUpdate, options = {}) 
 
   // Stable callback ref for remote updates
   const onRemoteUpdateRef = useRef(onRemoteUpdate)
-  onRemoteUpdateRef.current = onRemoteUpdate
+  useEffect(() => {
+    onRemoteUpdateRef.current = onRemoteUpdate
+  })
 
   // Read: listen for remote changes
   useEffect(() => {

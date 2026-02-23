@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import { getBallClass } from '../lib/ballDisplay'
 import { formatBowlerOvers, computeEconomy, ballsToDecimalOvers } from '../lib/overs'
 import { BALLS_PER_OVER } from '../lib/constants'
 import { formatDismissal } from '../lib/dismissalText'
 
-export default function MatchScorecard({ matchState }) {
+export default memo(function MatchScorecard({ matchState }) {
   if (!matchState) return null
 
   const { innings, team1, team2, result, superOver, cumulativeScores,
@@ -54,15 +55,16 @@ export default function MatchScorecard({ matchState }) {
             {/* Batting */}
             <div className="scorecard-section">
               <table className="scorecard-table">
+                <caption className="sr-only">Batting scorecard — {inn.battingTeam} {getOrdinal(idx + 1)} innings</caption>
                 <thead>
                   <tr>
-                    <th className="col-name">Batter</th>
-                    <th className="col-dismissal">How Out</th>
-                    <th className="col-stat">R</th>
-                    <th className="col-stat">B</th>
-                    <th className="col-stat">4s</th>
-                    <th className="col-stat">6s</th>
-                    <th className="col-stat">SR</th>
+                    <th scope="col" className="col-name">Batter</th>
+                    <th scope="col" className="col-dismissal">How Out</th>
+                    <th scope="col" className="col-stat">R</th>
+                    <th scope="col" className="col-stat">B</th>
+                    <th scope="col" className="col-stat">4s</th>
+                    <th scope="col" className="col-stat">6s</th>
+                    <th scope="col" className="col-stat">SR</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -90,14 +92,15 @@ export default function MatchScorecard({ matchState }) {
             {/* Bowling */}
             <div className="scorecard-section">
               <table className="scorecard-table">
+                <caption className="sr-only">Bowling scorecard — {inn.battingTeam} {getOrdinal(idx + 1)} innings</caption>
                 <thead>
                   <tr>
-                    <th className="col-name">Bowler</th>
-                    <th className="col-stat">O</th>
-                    <th className="col-stat">M</th>
-                    <th className="col-stat">R</th>
-                    <th className="col-stat">W</th>
-                    <th className="col-stat">Econ</th>
+                    <th scope="col" className="col-name">Bowler</th>
+                    <th scope="col" className="col-stat">O</th>
+                    <th scope="col" className="col-stat">M</th>
+                    <th scope="col" className="col-stat">R</th>
+                    <th scope="col" className="col-stat">W</th>
+                    <th scope="col" className="col-stat">Econ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -271,4 +274,4 @@ export default function MatchScorecard({ matchState }) {
       </div>
     </div>
   )
-}
+})

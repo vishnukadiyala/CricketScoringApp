@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { useMatch } from '../context/MatchContext'
 import { getBallClass, calculateOverRuns } from '../lib/ballDisplay'
 
-export default function OverSummary() {
+export default memo(function OverSummary() {
   const { phase, innings, currentInnings, getOrdinal } = useMatch()
 
   if (phase !== 'scoring' && phase !== 'new-bowler' && phase !== 'innings-break'
@@ -34,4 +35,4 @@ export default function OverSummary() {
       </div>
     </div>
   )
-}
+})

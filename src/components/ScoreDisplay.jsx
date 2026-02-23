@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useMatch } from '../context/MatchContext'
 import { getBallClass } from '../lib/ballDisplay'
 import { MAX_OVERS_PER_BOWLER, POWERPLAY_OVERS, BALLS_PER_OVER } from '../lib/constants'
@@ -166,7 +166,7 @@ export default function ScoreDisplay() {
   )
 }
 
-function InningsTimer({ startTime }) {
+const InningsTimer = memo(function InningsTimer({ startTime }) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -189,9 +189,9 @@ function InningsTimer({ startTime }) {
       <span className="timer-value">{mins}:{secs.toString().padStart(2, '0')}</span>
     </div>
   )
-}
+})
 
-function BowlingTracker({ innings: inn, currentBowlerIndex }) {
+const BowlingTracker = memo(function BowlingTracker({ innings: inn, currentBowlerIndex }) {
   if (!inn || !inn.bowlers?.length) return null
 
   return (
@@ -222,5 +222,5 @@ function BowlingTracker({ innings: inn, currentBowlerIndex }) {
       </div>
     </div>
   )
-}
+})
 

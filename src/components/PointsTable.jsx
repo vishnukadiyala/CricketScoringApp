@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { useTournament } from '../context/TournamentContext'
 import { computeStandings } from '../lib/standings'
 
-export default function PointsTable() {
+export default memo(function PointsTable() {
   const { teams, matches } = useTournament()
 
   if (teams.length === 0) return null
@@ -13,16 +14,17 @@ export default function PointsTable() {
       <h2>Points Table</h2>
       <div className="table-wrapper">
         <table className="standings-table">
+          <caption className="sr-only">Tournament standings</caption>
           <thead>
             <tr>
-              <th className="col-pos">#</th>
-              <th className="col-team">Team</th>
-              <th className="col-num">P</th>
-              <th className="col-num">W</th>
-              <th className="col-num">L</th>
-              <th className="col-num">T</th>
-              <th className="col-num">Pts</th>
-              <th className="col-nrr">NRR</th>
+              <th scope="col" className="col-pos">#</th>
+              <th scope="col" className="col-team">Team</th>
+              <th scope="col" className="col-num">P</th>
+              <th scope="col" className="col-num">W</th>
+              <th scope="col" className="col-num">L</th>
+              <th scope="col" className="col-num">T</th>
+              <th scope="col" className="col-num">Pts</th>
+              <th scope="col" className="col-nrr">NRR</th>
             </tr>
           </thead>
           <tbody>
@@ -49,4 +51,4 @@ export default function PointsTable() {
       </div>
     </div>
   )
-}
+})

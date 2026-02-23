@@ -83,7 +83,14 @@ export default function SpiritTracker() {
                 </div>
               </div>
             ) : (
-              <div className="spirit-note-display" onClick={() => startEditing(match.id)}>
+              <div
+                className="spirit-note-display"
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit sportsmanship notes for match ${match.matchNumber}`}
+                onClick={() => startEditing(match.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startEditing(match.id) } }}
+              >
                 {spiritNotes?.[match.id]
                   ? <p className="spirit-note-text">{spiritNotes[match.id]}</p>
                   : <p className="spirit-note-placeholder">Tap to add notes...</p>

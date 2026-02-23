@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, memo } from 'react'
 import { useTournament } from '../context/TournamentContext'
 import {
   loadCompletedMatchData,
@@ -52,30 +52,30 @@ export default function StatsPage() {
   const [teamFilter, setTeamFilter] = useState('all')
   const [playerModal, setPlayerModal] = useState(null)
 
-  // Try sync localStorage first, then async Firebase fallback for missing matches
-  const [allMatchData, setAllMatchData] = useState(() => loadCompletedMatchData(matches))
-  const [loading, setLoading] = useState(false)
+  // Sync localStorage data — recomputed whenever matches changes
+  const syncData = useMemo(() => loadCompletedMatchData(matches), [matches])
+  const completedCount = useMemo(() => matches.filter(m => m.status === 'completed').length, [matches])
+
+  // Async Firebase fallback for missing matches
+  const needsFirebase = syncData.length < completedCount
+  const [firebaseData, setFirebaseData] = useState(null)
+  const [firebaseDone, setFirebaseDone] = useState(false)
 
   useEffect(() => {
-    const syncData = loadCompletedMatchData(matches)
-    const completedCount = matches.filter(m => m.status === 'completed').length
+    if (!needsFirebase) return
 
-    // If localStorage has all completed matches, use sync data
-    if (syncData.length >= completedCount) {
-      setAllMatchData(syncData)
-      return
-    }
-
-    // Some matches missing from localStorage — try Firebase
-    setLoading(true)
+    let cancelled = false
     loadCompletedMatchDataWithFallback(matches).then(data => {
-      setAllMatchData(data)
-      setLoading(false)
+      if (!cancelled) { setFirebaseData(data); setFirebaseDone(true) }
     }).catch(() => {
-      setAllMatchData(syncData)
-      setLoading(false)
+      if (!cancelled) { setFirebaseDone(true) }
     })
-  }, [matches])
+    return () => { cancelled = true }
+  }, [matches, needsFirebase])
+
+  const loading = needsFirebase && !firebaseDone
+  // Use Firebase data if available and more complete, otherwise sync data
+  const allMatchData = (firebaseData && firebaseData.length > syncData.length) ? firebaseData : syncData
 
   const filteredData = useMemo(() => filterMatchData(allMatchData, { stage, teamId: teamFilter }), [allMatchData, stage, teamFilter])
 
@@ -83,8 +83,7 @@ export default function StatsPage() {
   const bowlingStats = useMemo(() => computeBowlingLeaderboard(filteredData), [filteredData])
   const fieldingStats = useMemo(() => computeFieldingStats(filteredData), [filteredData])
 
-  const completedCount = allMatchData.length
-  if (completedCount === 0) {
+  if (allMatchData.length === 0) {
     return (
       <div className="app">
         <header className="app-header">
@@ -110,10 +109,12 @@ export default function StatsPage() {
       </header>
       <main className="app-main">
         {/* Tab Navigation */}
-        <div className="stats-tabs">
+        <div className="stats-tabs" role="tablist" aria-label="Statistics categories">
           {TABS.map(tab => (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
               className={`stats-tab ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -170,7 +171,7 @@ export default function StatsPage() {
           <TeamsTab matchData={filteredData} teams={teams} />
         )}
         {activeTab === 'records' && (
-          <RecordsTab matchData={filteredData} teams={teams} />
+          <RecordsTab matchData={filteredData} />
         )}
         {activeTab === 'participation' && (
           <ParticipationTab matchData={filteredData} teams={teams} />
@@ -210,15 +211,15 @@ function fmtSR(sr) {
 
 function PlayerName({ player, onClick }) {
   return (
-    <span className="player-link" onClick={() => onClick(player)}>
+    <button type="button" className="player-link" onClick={() => onClick(player)}>
       {player.name}
-    </span>
+    </button>
   )
 }
 
 // ─── BATTING TAB ────────────────────────────────────────────────
 
-function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }) {
+const BattingTab = memo(function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }) {
   const [subView, setSubView] = useState('orange-cap')
 
   const orangeCap = useMemo(() => getOrangeCapList(battingStats), [battingStats])
@@ -250,10 +251,12 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
 
   return (
     <>
-      <div className="stats-sub-tabs">
+      <div className="stats-sub-tabs" role="tablist" aria-label="Sub-category filter">
         {subViews.map(sv => (
           <button
             key={sv.id}
+            role="tab"
+            aria-selected={subView === sv.id}
             className={`chip ${subView === sv.id ? 'active' : ''}`}
             onClick={() => setSubView(sv.id)}
           >
@@ -265,27 +268,27 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
       {subView === 'orange-cap' && (
         <div className="card">
           <h2>
-            <span className="cap-icon cap-orange">&#x1F3C6;</span>{' '}
+            <span className="cap-icon cap-orange" role="img" aria-label="Orange Cap trophy">&#x1F3C6;</span>{' '}
             Orange Cap — Top Run Scorers
           </h2>
           <div className="table-wrapper">
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">M</th>
-                  <th className="col-stat">Inn</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">B</th>
-                  <th className="col-stat">Avg</th>
-                  <th className="col-stat">SR</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">M</th>
+                  <th scope="col" className="col-stat">Inn</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">B</th>
+                  <th scope="col" className="col-stat">Avg</th>
+                  <th scope="col" className="col-stat">SR</th>
                 </tr>
               </thead>
               <tbody>
                 {orangeCap.slice(0, 15).map((p, i) => (
                   <tr key={`${p.teamId}-${p.name}`} className={rankClass(i)}>
-                    <td className="col-pos">{i === 0 ? '\u{1F3C6}' : i + 1}</td>
+                    <td className="col-pos">{i === 0 ? <span role="img" aria-label="1st place">{'\u{1F3C6}'}</span> : i + 1}</td>
                     <td className="col-name">
                       <PlayerName player={p} onClick={handlePlayerClick} />
                       <span className="player-team-badge">{p.team}</span>
@@ -311,10 +314,10 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">4s</th>
-                  <th className="col-stat">Inn</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">4s</th>
+                  <th scope="col" className="col-stat">Inn</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,10 +345,10 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">6s</th>
-                  <th className="col-stat">Inn</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">6s</th>
+                  <th scope="col" className="col-stat">Inn</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,11 +376,11 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">B</th>
-                  <th className="col-stat">SR</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">B</th>
+                  <th scope="col" className="col-stat">SR</th>
                 </tr>
               </thead>
               <tbody>
@@ -406,12 +409,12 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">Inn</th>
-                  <th className="col-stat">NO</th>
-                  <th className="col-stat">Avg</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">Inn</th>
+                  <th scope="col" className="col-stat">NO</th>
+                  <th scope="col" className="col-stat">Avg</th>
                 </tr>
               </thead>
               <tbody>
@@ -441,13 +444,13 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">Score</th>
-                  <th className="col-stat">B</th>
-                  <th className="col-stat">4s</th>
-                  <th className="col-stat">6s</th>
-                  <th className="col-name">vs</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">Score</th>
+                  <th scope="col" className="col-stat">B</th>
+                  <th scope="col" className="col-stat">4s</th>
+                  <th scope="col" className="col-stat">6s</th>
+                  <th scope="col" className="col-name">vs</th>
                 </tr>
               </thead>
               <tbody>
@@ -484,10 +487,10 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">30+</th>
-                  <th className="col-stat">Inn</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">30+</th>
+                  <th scope="col" className="col-stat">Inn</th>
                 </tr>
               </thead>
               <tbody>
@@ -515,10 +518,10 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">Ducks</th>
-                  <th className="col-stat">Inn</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">Ducks</th>
+                  <th scope="col" className="col-stat">Inn</th>
                 </tr>
               </thead>
               <tbody>
@@ -540,11 +543,11 @@ function BattingTab({ battingStats, bowlingStats, fieldingStats, onPlayerClick }
       )}
     </>
   )
-}
+})
 
 // ─── BOWLING TAB ────────────────────────────────────────────────
 
-function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPlayerClick }) {
+const BowlingTab = memo(function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPlayerClick }) {
   const [subView, setSubView] = useState('purple-cap')
 
   const purpleCap = useMemo(() => getPurpleCapList(bowlingStats), [bowlingStats])
@@ -576,10 +579,12 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
 
   return (
     <>
-      <div className="stats-sub-tabs">
+      <div className="stats-sub-tabs" role="tablist" aria-label="Sub-category filter">
         {subViews.map(sv => (
           <button
             key={sv.id}
+            role="tab"
+            aria-selected={subView === sv.id}
             className={`chip ${subView === sv.id ? 'active' : ''}`}
             onClick={() => setSubView(sv.id)}
           >
@@ -591,27 +596,27 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
       {subView === 'purple-cap' && (
         <div className="card">
           <h2>
-            <span className="cap-icon cap-purple">&#x1F3C6;</span>{' '}
+            <span className="cap-icon cap-purple" role="img" aria-label="Purple Cap trophy">&#x1F3C6;</span>{' '}
             Purple Cap — Top Wicket Takers
           </h2>
           <div className="table-wrapper">
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">M</th>
-                  <th className="col-stat">O</th>
-                  <th className="col-stat">W</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">Avg</th>
-                  <th className="col-stat">Ec</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">M</th>
+                  <th scope="col" className="col-stat">O</th>
+                  <th scope="col" className="col-stat">W</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">Avg</th>
+                  <th scope="col" className="col-stat">Ec</th>
                 </tr>
               </thead>
               <tbody>
                 {purpleCap.slice(0, 15).map((p, i) => (
                   <tr key={`${p.teamId}-${p.name}`} className={rankClass(i)}>
-                    <td className="col-pos">{i === 0 ? '\u{1F3C6}' : i + 1}</td>
+                    <td className="col-pos">{i === 0 ? <span role="img" aria-label="1st place">{'\u{1F3C6}'}</span> : i + 1}</td>
                     <td className="col-name">
                       <PlayerName player={p} onClick={handlePlayerClick} />
                       <span className="player-team-badge">{p.team}</span>
@@ -637,11 +642,11 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">O</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">Ec</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">O</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">Ec</th>
                 </tr>
               </thead>
               <tbody>
@@ -670,11 +675,11 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">W</th>
-                  <th className="col-stat">R</th>
-                  <th className="col-stat">Avg</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">W</th>
+                  <th scope="col" className="col-stat">R</th>
+                  <th scope="col" className="col-stat">Avg</th>
                 </tr>
               </thead>
               <tbody>
@@ -703,11 +708,11 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">W</th>
-                  <th className="col-stat">B</th>
-                  <th className="col-stat">SR</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">W</th>
+                  <th scope="col" className="col-stat">B</th>
+                  <th scope="col" className="col-stat">SR</th>
                 </tr>
               </thead>
               <tbody>
@@ -736,12 +741,12 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">Fig</th>
-                  <th className="col-stat">O</th>
-                  <th className="col-name">vs</th>
-                  <th className="col-stat">M#</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">Fig</th>
+                  <th scope="col" className="col-stat">O</th>
+                  <th scope="col" className="col-name">vs</th>
+                  <th scope="col" className="col-stat">M#</th>
                 </tr>
               </thead>
               <tbody>
@@ -773,10 +778,10 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">Dots</th>
-                  <th className="col-stat">O</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">Dots</th>
+                  <th scope="col" className="col-stat">O</th>
                 </tr>
               </thead>
               <tbody>
@@ -804,10 +809,10 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  <th className="col-stat">Maidens</th>
-                  <th className="col-stat">O</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  <th scope="col" className="col-stat">Maidens</th>
+                  <th scope="col" className="col-stat">O</th>
                 </tr>
               </thead>
               <tbody>
@@ -835,12 +840,12 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Bowling</th>
-                  <th className="col-stat">Runs</th>
-                  <th className="col-name">vs</th>
-                  <th className="col-stat">Ov#</th>
-                  <th className="col-stat">M#</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Bowling</th>
+                  <th scope="col" className="col-stat">Runs</th>
+                  <th scope="col" className="col-name">vs</th>
+                  <th scope="col" className="col-stat">Ov#</th>
+                  <th scope="col" className="col-stat">M#</th>
                 </tr>
               </thead>
               <tbody>
@@ -861,11 +866,11 @@ function BowlingTab({ bowlingStats, battingStats, fieldingStats, matchData, onPl
       )}
     </>
   )
-}
+})
 
 // ─── FIELDING TAB ───────────────────────────────────────────────
 
-function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
+const FieldingTab = memo(function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
   const [subView, setSubView] = useState('total')
   const fieldingStats = useMemo(() => computeFieldingStats(matchData), [matchData])
   const teamFieldingStats = useMemo(() => computeTeamFieldingStats(matchData), [matchData])
@@ -924,10 +929,12 @@ function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
 
   return (
     <>
-      <div className="stats-sub-tabs">
+      <div className="stats-sub-tabs" role="tablist" aria-label="Sub-category filter">
         {subViews.map(sv => (
           <button
             key={sv.id}
+            role="tab"
+            aria-selected={subView === sv.id}
             className={`chip ${subView === sv.id ? 'active' : ''}`}
             onClick={() => setSubView(sv.id)}
           >
@@ -950,13 +957,13 @@ function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Player</th>
-                  {subView === 'total' && <th className="col-stat">Tot</th>}
-                  <th className="col-stat">Ct</th>
-                  <th className="col-stat">RO</th>
-                  {subView !== 'stumpings' && <th className="col-stat">DH</th>}
-                  <th className="col-stat">St</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Player</th>
+                  {subView === 'total' && <th scope="col" className="col-stat">Tot</th>}
+                  <th scope="col" className="col-stat">Ct</th>
+                  <th scope="col" className="col-stat">RO</th>
+                  {subView !== 'stumpings' && <th scope="col" className="col-stat">DH</th>}
+                  <th scope="col" className="col-stat">St</th>
                 </tr>
               </thead>
               <tbody>
@@ -981,7 +988,7 @@ function FieldingTab({ matchData, battingStats, bowlingStats, onPlayerClick }) {
       )}
     </>
   )
-}
+})
 
 function TeamFieldingSection({ teamFieldingStats }) {
   return (
@@ -991,12 +998,12 @@ function TeamFieldingSection({ teamFieldingStats }) {
         <table className="stats-table">
           <thead>
             <tr>
-              <th className="col-name">Team</th>
-              <th className="col-stat">Catches</th>
-              <th className="col-stat">Run Outs</th>
-              <th className="col-stat">Stumpings</th>
-              <th className="col-stat">Bowled</th>
-              <th className="col-stat">LBW</th>
+              <th scope="col" className="col-name">Team</th>
+              <th scope="col" className="col-stat">Catches</th>
+              <th scope="col" className="col-stat">Run Outs</th>
+              <th scope="col" className="col-stat">Stumpings</th>
+              <th scope="col" className="col-stat">Bowled</th>
+              <th scope="col" className="col-stat">LBW</th>
             </tr>
           </thead>
           <tbody>
@@ -1019,7 +1026,7 @@ function TeamFieldingSection({ teamFieldingStats }) {
 
 // ─── TEAMS TAB ──────────────────────────────────────────────────
 
-function TeamsTab({ matchData, teams }) {
+const TeamsTab = memo(function TeamsTab({ matchData, teams }) {
   const teamStats = useMemo(() => computeTeamStats(matchData, teams), [matchData, teams])
   const highestTotals = useMemo(() => getHighestTeamTotals(matchData), [matchData])
   const lowestTotals = useMemo(() => getLowestTeamTotals(matchData), [matchData])
@@ -1033,14 +1040,14 @@ function TeamsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-name">Team</th>
-                <th className="col-stat">M</th>
-                <th className="col-stat">Runs</th>
-                <th className="col-stat">Avg/Inn</th>
-                <th className="col-stat">HS</th>
-                <th className="col-stat">LS</th>
-                <th className="col-stat">4s</th>
-                <th className="col-stat">6s</th>
+                <th scope="col" className="col-name">Team</th>
+                <th scope="col" className="col-stat">M</th>
+                <th scope="col" className="col-stat">Runs</th>
+                <th scope="col" className="col-stat">Avg/Inn</th>
+                <th scope="col" className="col-stat">HS</th>
+                <th scope="col" className="col-stat">LS</th>
+                <th scope="col" className="col-stat">4s</th>
+                <th scope="col" className="col-stat">6s</th>
               </tr>
             </thead>
             <tbody>
@@ -1067,13 +1074,13 @@ function TeamsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-name">Team</th>
-                <th className="col-stat">M</th>
-                <th className="col-stat">Wkts</th>
-                <th className="col-stat">Avg/Inn</th>
-                <th className="col-stat">Dots</th>
-                <th className="col-stat">Wd</th>
-                <th className="col-stat">NB</th>
+                <th scope="col" className="col-name">Team</th>
+                <th scope="col" className="col-stat">M</th>
+                <th scope="col" className="col-stat">Wkts</th>
+                <th scope="col" className="col-stat">Avg/Inn</th>
+                <th scope="col" className="col-stat">Dots</th>
+                <th scope="col" className="col-stat">Wd</th>
+                <th scope="col" className="col-stat">NB</th>
               </tr>
             </thead>
             <tbody>
@@ -1099,12 +1106,12 @@ function TeamsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-pos">#</th>
-                <th className="col-name">Team</th>
-                <th className="col-stat">Score</th>
-                <th className="col-stat">Ov</th>
-                <th className="col-name">vs</th>
-                <th className="col-stat">M#</th>
+                <th scope="col" className="col-pos">#</th>
+                <th scope="col" className="col-name">Team</th>
+                <th scope="col" className="col-stat">Score</th>
+                <th scope="col" className="col-stat">Ov</th>
+                <th scope="col" className="col-name">vs</th>
+                <th scope="col" className="col-stat">M#</th>
               </tr>
             </thead>
             <tbody>
@@ -1129,12 +1136,12 @@ function TeamsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-pos">#</th>
-                <th className="col-name">Team</th>
-                <th className="col-stat">Score</th>
-                <th className="col-stat">Ov</th>
-                <th className="col-name">vs</th>
-                <th className="col-stat">M#</th>
+                <th scope="col" className="col-pos">#</th>
+                <th scope="col" className="col-name">Team</th>
+                <th scope="col" className="col-stat">Score</th>
+                <th scope="col" className="col-stat">Ov</th>
+                <th scope="col" className="col-name">vs</th>
+                <th scope="col" className="col-stat">M#</th>
               </tr>
             </thead>
             <tbody>
@@ -1160,11 +1167,11 @@ function TeamsTab({ matchData, teams }) {
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Winner</th>
-                  <th className="col-stat">Margin</th>
-                  <th className="col-name">vs</th>
-                  <th className="col-stat">M#</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Winner</th>
+                  <th scope="col" className="col-stat">Margin</th>
+                  <th scope="col" className="col-name">vs</th>
+                  <th scope="col" className="col-stat">M#</th>
                 </tr>
               </thead>
               <tbody>
@@ -1184,11 +1191,11 @@ function TeamsTab({ matchData, teams }) {
       )}
     </>
   )
-}
+})
 
 // ─── RECORDS TAB ────────────────────────────────────────────────
 
-function RecordsTab({ matchData, teams }) {
+const RecordsTab = memo(function RecordsTab({ matchData }) {
   const matchAggregates = useMemo(() => getHighestMatchAggregates(matchData), [matchData])
   const closestMatches = useMemo(() => getClosestMatches(matchData), [matchData])
   const extras = useMemo(() => getMostExtrasInInnings(matchData), [matchData])
@@ -1203,10 +1210,10 @@ function RecordsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-pos">#</th>
-                <th className="col-name">Teams</th>
-                <th className="col-stat">Total</th>
-                <th className="col-stat">M#</th>
+                <th scope="col" className="col-pos">#</th>
+                <th scope="col" className="col-name">Teams</th>
+                <th scope="col" className="col-stat">Total</th>
+                <th scope="col" className="col-stat">M#</th>
               </tr>
             </thead>
             <tbody>
@@ -1230,10 +1237,10 @@ function RecordsTab({ matchData, teams }) {
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th className="col-pos">#</th>
-                  <th className="col-name">Match</th>
-                  <th className="col-stat">Margin</th>
-                  <th className="col-stat">M#</th>
+                  <th scope="col" className="col-pos">#</th>
+                  <th scope="col" className="col-name">Match</th>
+                  <th scope="col" className="col-stat">Margin</th>
+                  <th scope="col" className="col-stat">M#</th>
                 </tr>
               </thead>
               <tbody>
@@ -1257,14 +1264,14 @@ function RecordsTab({ matchData, teams }) {
           <table className="stats-table">
             <thead>
               <tr>
-                <th className="col-pos">#</th>
-                <th className="col-name">Bowling</th>
-                <th className="col-stat">Total</th>
-                <th className="col-stat">Wd</th>
-                <th className="col-stat">NB</th>
-                <th className="col-stat">B</th>
-                <th className="col-stat">LB</th>
-                <th className="col-stat">M#</th>
+                <th scope="col" className="col-pos">#</th>
+                <th scope="col" className="col-name">Bowling</th>
+                <th scope="col" className="col-stat">Total</th>
+                <th scope="col" className="col-stat">Wd</th>
+                <th scope="col" className="col-stat">NB</th>
+                <th scope="col" className="col-stat">B</th>
+                <th scope="col" className="col-stat">LB</th>
+                <th scope="col" className="col-stat">M#</th>
               </tr>
             </thead>
             <tbody>
@@ -1320,11 +1327,11 @@ function RecordsTab({ matchData, teams }) {
       )}
     </>
   )
-}
+})
 
 // ─── PARTICIPATION TAB ──────────────────────────────────────────
 
-function ParticipationTab({ matchData, teams }) {
+const ParticipationTab = memo(function ParticipationTab({ matchData, teams }) {
   const participation = useMemo(() => computeParticipation(matchData, teams), [matchData, teams])
 
   return (
@@ -1376,7 +1383,7 @@ function ParticipationTab({ matchData, teams }) {
       })}
     </>
   )
-}
+})
 
 // ─── PLAYER PROFILE MODAL ───────────────────────────────────────
 
@@ -1398,13 +1405,13 @@ function QualifierRow({ label, value, current, required, unit, formatFn }) {
   )
 }
 
-function PlayerModal({ player, onClose }) {
+const PlayerModal = memo(function PlayerModal({ player, onClose }) {
   const { batting, bowling, fielding, name, team } = player
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>&times;</button>
+      <div className="modal-content" role="dialog" aria-modal="true" aria-label={`${name} player profile`} onClick={e => e.stopPropagation()}>
+        <button className="modal-close" aria-label="Close player profile" onClick={onClose}>&times;</button>
 
         <div className="modal-player-header">
           <h2>{name}</h2>
@@ -1453,12 +1460,12 @@ function PlayerModal({ player, onClose }) {
                   <table className="stats-table">
                     <thead>
                       <tr>
-                        <th className="col-stat">M#</th>
-                        <th className="col-name">vs</th>
-                        <th className="col-stat">R</th>
-                        <th className="col-stat">B</th>
-                        <th className="col-stat">4s</th>
-                        <th className="col-stat">6s</th>
+                        <th scope="col" className="col-stat">M#</th>
+                        <th scope="col" className="col-name">vs</th>
+                        <th scope="col" className="col-stat">R</th>
+                        <th scope="col" className="col-stat">B</th>
+                        <th scope="col" className="col-stat">4s</th>
+                        <th scope="col" className="col-stat">6s</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1529,11 +1536,11 @@ function PlayerModal({ player, onClose }) {
                   <table className="stats-table">
                     <thead>
                       <tr>
-                        <th className="col-stat">M#</th>
-                        <th className="col-name">vs</th>
-                        <th className="col-stat">Fig</th>
-                        <th className="col-stat">O</th>
-                        <th className="col-stat">Ec</th>
+                        <th scope="col" className="col-stat">M#</th>
+                        <th scope="col" className="col-name">vs</th>
+                        <th scope="col" className="col-stat">Fig</th>
+                        <th scope="col" className="col-stat">O</th>
+                        <th scope="col" className="col-stat">Ec</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1569,4 +1576,4 @@ function PlayerModal({ player, onClose }) {
       </div>
     </div>
   )
-}
+})
