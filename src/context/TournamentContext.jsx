@@ -302,10 +302,19 @@ export function tournamentReducer(state, action) {
         ...t,
         squad: migrateSquad(t.squad),
       }))
+      // Preserve local completed match statuses that remote may not have yet
+      const mergedMatches = (cleaned.matches || []).map(remoteMatch => {
+        const localMatch = state.matches.find(m => m.id === remoteMatch.id)
+        if (localMatch && localMatch.status === 'completed' && remoteMatch.status !== 'completed') {
+          return localMatch // keep local completed data
+        }
+        return remoteMatch
+      })
       return {
         ...initialTournamentState,
         ...cleaned,
         teams: migratedTeams,
+        matches: mergedMatches,
         squadChanges: cleaned.squadChanges || state.squadChanges || [],
       }
     }

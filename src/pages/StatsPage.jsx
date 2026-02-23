@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTournament } from '../context/TournamentContext'
 import {
   loadCompletedMatchData,
+  loadCompletedMatchDataWithFallback,
   filterMatchData,
   computeBattingLeaderboard,
   getOrangeCapList,
@@ -50,7 +51,31 @@ export default function StatsPage() {
   const [teamFilter, setTeamFilter] = useState('all')
   const [playerModal, setPlayerModal] = useState(null)
 
-  const allMatchData = useMemo(() => loadCompletedMatchData(matches), [matches])
+  // Try sync localStorage first, then async Firebase fallback for missing matches
+  const [allMatchData, setAllMatchData] = useState(() => loadCompletedMatchData(matches))
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const syncData = loadCompletedMatchData(matches)
+    const completedCount = matches.filter(m => m.status === 'completed').length
+
+    // If localStorage has all completed matches, use sync data
+    if (syncData.length >= completedCount) {
+      setAllMatchData(syncData)
+      return
+    }
+
+    // Some matches missing from localStorage — try Firebase
+    setLoading(true)
+    loadCompletedMatchDataWithFallback(matches).then(data => {
+      setAllMatchData(data)
+      setLoading(false)
+    }).catch(() => {
+      setAllMatchData(syncData)
+      setLoading(false)
+    })
+  }, [matches])
+
   const filteredData = useMemo(() => filterMatchData(allMatchData, { stage, teamId: teamFilter }), [allMatchData, stage, teamFilter])
 
   const battingStats = useMemo(() => computeBattingLeaderboard(filteredData, teams), [filteredData, teams])
@@ -65,7 +90,11 @@ export default function StatsPage() {
         </header>
         <main className="app-main">
           <div className="card" style={{ textAlign: 'center' }}>
-            <p>No completed matches yet. Stats will appear after the first match.</p>
+            {loading ? (
+              <p>Loading match data...</p>
+            ) : (
+              <p>No completed matches yet. Stats will appear after the first match.</p>
+            )}
           </div>
         </main>
       </div>

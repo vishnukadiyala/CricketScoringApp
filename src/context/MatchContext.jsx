@@ -820,12 +820,8 @@ function loadSavedState(key) {
     const parsed = JSON.parse(saved)
     // Validate it has the expected shape
     if (parsed && parsed.phase && parsed.innings) {
-      return restoreInningsDefaults({
-        ...initialState,
-        ...parsed,
-        ballHistory: parsed.ballHistory || [],
-        superOverHistory: parsed.superOverHistory || [],
-      })
+      // ballHistory is not persisted (large, transient) — restore empty
+      return restoreInningsDefaults({ ...initialState, ...parsed, ballHistory: [], superOverHistory: [] })
     }
   } catch {
     // Corrupted data — ignore
@@ -836,12 +832,21 @@ function loadSavedState(key) {
 function saveState(state, key) {
   try {
     // Don't save if in setup phase (nothing to resume)
+    // But never delete a completed match — check existing data first
     if (state.phase === 'setup') {
+      try {
+        const existing = localStorage.getItem(key)
+        if (existing) {
+          const parsed = JSON.parse(existing)
+          if (parsed && parsed.phase === 'match-over') return // preserve completed match
+        }
+      } catch { /* ignore */ }
       localStorage.removeItem(key)
       return
     }
+    // Omit ballHistory from persistence (large, transient)
     // eslint-disable-next-line no-unused-vars
-    const { _lastWriteTime, ...toSave } = state
+    const { ballHistory, superOverHistory, _lastWriteTime, ...toSave } = state
     localStorage.setItem(key, JSON.stringify(toSave))
   } catch {
     // Storage full or unavailable — silently ignore

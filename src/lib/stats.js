@@ -1,9 +1,46 @@
 import { BALLS_PER_OVER, MAX_WICKETS } from './constants'
-import { loadMatch } from './storage'
+import { loadMatch, saveMatch } from './storage'
 import { getActivePlayerNames, countActivePlayers } from './squadUtils'
 import { ballsToDecimalOvers } from './overs'
+import { db, isFirebaseConfigured, ref, get } from './firebase'
 
 // ─── Data Loading ───────────────────────────────────────────────
+
+// Deep convert Firebase numeric-key objects back to arrays
+function deepRestoreArrays(obj) {
+  if (obj === null || obj === undefined) return obj
+  if (Array.isArray(obj)) return obj.map(deepRestoreArrays)
+  if (typeof obj === 'object') {
+    const keys = Object.keys(obj)
+    if (keys.length > 0 && keys.every(k => /^\d+$/.test(k))) {
+      return Object.values(obj).map(deepRestoreArrays)
+    }
+    const result = {}
+    for (const [k, v] of Object.entries(obj)) {
+      result[k] = deepRestoreArrays(v)
+    }
+    return result
+  }
+  return obj
+}
+
+function restoreMatchDefaults(state) {
+  if (!state || !state.innings) return state
+  const innings = (Array.isArray(state.innings) ? state.innings : Object.values(state.innings)).map(inn => {
+    if (!inn) return inn
+    return {
+      ...inn,
+      currentOver: inn.currentOver || [],
+      allOvers: inn.allOvers || [],
+      batsmen: inn.batsmen || [],
+      bowlers: inn.bowlers || [],
+      fallOfWickets: inn.fallOfWickets || [],
+      bowlerOversMap: inn.bowlerOversMap || {},
+      extras: inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
+    }
+  })
+  return { ...state, innings }
+}
 
 /**
  * Load all completed match states from localStorage.
@@ -17,6 +54,54 @@ export function loadCompletedMatchData(matches) {
       return state ? { matchMeta: m, matchState: state } : null
     })
     .filter(Boolean)
+}
+
+/**
+ * Load all completed match states, trying localStorage first and
+ * falling back to Firebase for any missing matches.
+ * Returns a Promise that resolves to array of { matchMeta, matchState }.
+ */
+export async function loadCompletedMatchDataWithFallback(matches) {
+  const completed = matches.filter(m => m.status === 'completed')
+  if (completed.length === 0) return []
+
+  const results = []
+  const firebaseFetches = []
+
+  for (const m of completed) {
+    const state = loadMatch(m.id)
+    if (state) {
+      results.push({ matchMeta: m, matchState: state })
+    } else if (isFirebaseConfigured && db) {
+      firebaseFetches.push(m)
+    }
+  }
+
+  // Fetch missing matches from Firebase
+  if (firebaseFetches.length > 0) {
+    const fetched = await Promise.all(
+      firebaseFetches.map(async (m) => {
+        try {
+          const matchRef = ref(db, `matches/${m.id}`)
+          const snapshot = await get(matchRef)
+          const data = snapshot.val()
+          if (data) {
+            const { _lastWriteTime, ...cleaned } = data
+            const restored = restoreMatchDefaults(deepRestoreArrays(cleaned))
+            // Cache in localStorage for next time
+            try { saveMatch(m.id, restored) } catch { /* quota */ }
+            return { matchMeta: m, matchState: restored }
+          }
+        } catch { /* Firebase read failed */ }
+        return null
+      })
+    )
+    results.push(...fetched.filter(Boolean))
+  }
+
+  // Sort by match number to maintain consistent order
+  results.sort((a, b) => a.matchMeta.matchNumber - b.matchMeta.matchNumber)
+  return results
 }
 
 /**
