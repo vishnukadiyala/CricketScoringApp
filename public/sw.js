@@ -50,17 +50,28 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // For assets (JS, CSS, images, fonts), use network-first strategy
-  // Vite hashes filenames so new deploys always use new URLs
+  // For assets (JS, CSS, images, fonts), use cache-first with background update
+  // Vite hashes filenames, so new deploys use new URLs that won't be in cache
+  // Cache-first ensures fast loads for scorers with poor connectivity
   event.respondWith(
-    fetch(request)
-      .then((response) => {
+    caches.match(request).then((cached) => {
+      if (cached) {
+        // Return cached version and update cache in background
+        fetch(request).then((response) => {
+          if (response.ok) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, response))
+          }
+        }).catch(() => {})
+        return cached
+      }
+
+      return fetch(request).then((response) => {
         if (response.ok) {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }
         return response
       })
-      .catch(() => caches.match(request))
+    })
   )
 })
