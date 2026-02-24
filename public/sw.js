@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ncc-cricket-v1'
+const CACHE_NAME = 'ncc-cricket-v2'
 
 const PRECACHE_URLS = [
   '/',
@@ -50,26 +50,17 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // For assets (JS, CSS, images, fonts), use cache-first strategy
+  // For assets (JS, CSS, images, fonts), use network-first strategy
+  // Vite hashes filenames so new deploys always use new URLs
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) {
-        // Return cached version and update cache in background
-        fetch(request).then((response) => {
-          if (response.ok) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, response))
-          }
-        }).catch(() => {})
-        return cached
-      }
-
-      return fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }
         return response
       })
-    })
+      .catch(() => caches.match(request))
   )
 })
