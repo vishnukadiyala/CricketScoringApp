@@ -196,7 +196,7 @@ export function CommentaryProvider({ matchId, children }) {
 
     // Build text context describing the match situation + what just happened
     const contextText = [
-      buildCommentaryContext(matchState),
+      buildCommentaryContext(matchState, ballAction),
       '',
       'THIS BALL: ' + describeBallEvent(ballAction),
     ].join('\n')
