@@ -1,29 +1,26 @@
-<p align="center">
-  <img src="docs/assets/ncc-banner.png" alt="NCC Edition 5" width="800" />
-</p>
 
-<h1 align="center">🏏 NCC Edition 5 — Tournament Management App</h1>
+<h1 align="center">🏏 NCC Edition 5 — Cricket Tournament App</h1>
 
 <p align="center">
-  <strong>A real-time cricket scoring and tournament management platform built for the Norman Cricket Championship's T20-Test hybrid format.</strong>
+  <strong>Real-time ball-by-ball scoring for a T20-Test hybrid cricket format with 4 innings, follow-on rules, squad rotation, and cumulative scoring.</strong>
 </p>
 
 <p align="center">
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-the-format">The Format</a> •
-  <a href="#-scoring-engine">Scoring Engine</a> •
-  <a href="#-snapshot-undo-system">Undo System</a> •
-  <a href="#-data-layer">Data Layer</a> •
-  <a href="#-getting-started">Getting Started</a>
+  <a href="#architecture">Architecture</a> •
+  <a href="#the-format">The Format</a> •
+  <a href="#scoring-engine">Scoring Engine</a> •
+  <a href="#snapshot-undo-system">Undo System</a> •
+  <a href="#data-layer">Data Layer</a> •
+  <a href="#getting-started">Getting Started</a>
 </p>
 
 ---
 
-## 🎯 What Is This?
+## What Is This?
 
 NCC Edition 5 is not a standard cricket tournament — and this is not a standard cricket app.
 
-The tournament uses a **T20-Test hybrid format**: 4 innings per match, 12 overs each, with cumulative scoring, squad rotation between innings, and a **follow-on rule** that can flip the entire match on its head. This app was built from scratch to handle all of it — because nothing else could.
+The tournament uses a **T20-Test hybrid format**: 4 innings per match, 12 overs each, with cumulative scoring, squad rotation between innings, and a **follow-on rule** that can flip the entire match on its head. No existing cricket scoring tool supports this format, so this app was built from scratch.
 
 ### Key Challenges Solved
 
@@ -34,13 +31,14 @@ The tournament uses a **T20-Test hybrid format**: 4 innings per match, 12 overs 
 | Innings victory (match ends after 3 innings) | Post-3rd-innings victory detection when follow-on is active |
 | Squad rotation (1–5 subs between innings) | Rotation window with validation, substituted players can't return |
 | Reliable undo on a phone during live play | Snapshot-based state restoration (not surgical reversal) |
-| Time penalties that compress the field | Progressive fielding restriction reduction by umpire discretion |
 | Accurate NRR in a multi-innings format | ICC-style calculation treating each match as 24 overs per side |
 | Real-time sync across devices | Firebase Realtime Database with debounced writes and offline fallback |
 
+> **Screenshots:** *The app is mobile-first with a dark theme optimized for 480px screens. Screenshots of the scoring UI will be added here once available.*
+
 ---
 
-## 🏗 Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -52,7 +50,7 @@ The tournament uses a **T20-Test hybrid format**: 4 innings per match, 12 overs 
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘ │
 │       │              │             │              │      │
 │  ┌────┴──────────────┴─────────────┴──────────────┴────┐ │
-│  │              Component Layer                         │ │
+│  │              Component Layer (18 components)         │ │
 │  │  Scoring · ScoreDisplay · MatchSetup · OverSummary   │ │
 │  │  SquadRotation · BattingOrder · SuperOver            │ │
 │  │  BallHistoryTimeline · MatchScorecard · InningsBreak │ │
@@ -83,17 +81,17 @@ The tournament uses a **T20-Test hybrid format**: 4 innings per match, 12 overs 
 | Layer | Technology | Why |
 |-------|-----------|-----|
 | Framework | React 19 + Vite 7 | Fast HMR, code-splitting via lazy routes |
-| Routing | React Router 7 | SPA navigation with protected routes |
-| Styling | CSS with custom properties | Dark theme, mobile-first (480px optimized) |
+| Routing | React Router 7 | SPA navigation with role-based protected routes |
+| Styling | CSS custom properties | Dark theme, mobile-first (480px optimized), no framework |
 | Database | Firebase Realtime DB | Real-time sync across scorer/spectator devices |
 | Offline | localStorage + Service Worker | Full offline scoring — no internet needed on match day |
 | Auth | Firebase Auth | Email/password + email-link sign-in, role-based access |
-| Testing | Vitest | 305+ tests across the scoring engine and utilities |
+| Testing | Vitest | 529 tests across the scoring engine and utilities |
 | Deployment | Vercel | SPA rewrites, zero-config hosting |
 
 ---
 
-## 🏏 The Format
+## The Format
 
 NCC Edition 5 uses a **T20-Test hybrid** — four 12-over innings with cumulative scoring, modeled after Test cricket but played at T20 pace.
 
@@ -139,7 +137,7 @@ stateDiagram-v2
 
 ### The Follow-On
 
-The signature mechanic of Edition 5. If Team B's 2nd innings total is **strictly less than 50%** of Team A's 1st innings total, Team A may enforce the follow-on during the Rotation Window.
+The signature mechanic of Edition 5. If Team B's 1st innings total is **strictly less than 50%** of Team A's 1st innings total, Team A may enforce the follow-on during the Rotation Window.
 
 ```
 Normal:     A → B → A → B
@@ -157,7 +155,7 @@ flowchart TD
     D -->|Yes| F[3rd Innings: Team B bats again]
     D -->|No| E
     F --> G{B combined > A total?}
-    G -->|No: B has 95, A has 100| H[🏆 Innings Victory\nA wins by innings and 5 runs\nNo 4th innings played]
+    G -->|No: B has 95, A has 100| H[Innings Victory: A wins by\ninnings and 5 runs\nNo 4th innings played]
     G -->|Yes: B has 115, A has 100| I[4th Innings: Team A chases 16]
 
     style H fill:#c62828,color:#fff
@@ -171,13 +169,18 @@ After the 2nd innings, a **Rotation Window** opens where both teams:
 1. **Substitute 1–5 players** from their 15-player squad (substituted players cannot return)
 2. **Declare follow-on** (if eligible)
 
-Both decisions are submitted simultaneously and become final when the window closes.
-
 ---
 
-## ⚙️ Scoring Engine
+## Scoring Engine
 
-The scoring engine (driven by `MatchContext.jsx`) handles ball-by-ball recording with proper cricket rules for a multi-innings cumulative format. It operates as a state machine progressing through: `setup → toss → select-xi → batting-order → scoring → innings-break → match-over → super-over`.
+The scoring engine (driven by `MatchContext.jsx`) handles ball-by-ball recording with proper cricket rules for a multi-innings cumulative format. It operates as a state machine progressing through these phases:
+
+```
+setup → toss → select-xi → batting-order → scoring ⇄ new-bowler
+  → innings-break → follow-on-decision → squad-rotation
+  → scoring → ... → match-over
+  → super-over (if tied)
+```
 
 ### Ball Recording Flow
 
@@ -227,37 +230,41 @@ Getting extras wrong corrupts every batting average and bowling economy in the t
 
 | Delivery | Team Total | Batter Score | Bowler Conceded | Legal Ball? | Strike Change |
 |----------|-----------|-------------|----------------|-------------|--------------|
-| Normal runs (1,2,3,4,6) | +runs | +runs | +runs | ✅ | Odd runs = swap |
-| Dot ball | — | — | — | ✅ | No |
-| Wide | +1 (+byes) | — | +1 (+byes) | ❌ | Only if odd byes |
-| No-ball | +1 (+batter runs) | +batter runs | +1 (+batter runs) | ❌ | Based on batter runs |
-| Bye | +runs | — | — | ✅ | Odd runs = swap |
-| Leg bye | +runs | — | — | ✅ | Odd runs = swap |
+| Normal runs (1,2,3,4,6) | +runs | +runs | +runs | Yes | Odd runs = swap |
+| Dot ball | — | — | — | Yes | No |
+| Wide | +1 (+byes) | — | +1 (+byes) | No | Only if odd byes |
+| No-ball | +1 (+batter runs) | +batter runs | +1 (+batter runs) | No | Based on batter runs |
+| Bye | +runs | — | — | Yes | Odd runs = swap |
+| Leg bye | +runs | — | — | Yes | Odd runs = swap |
+
+### Supported Dismissal Types
+
+bowled, caught, lbw, stumped, run out (with fielder attribution, including direct hit tracking), hit wicket, timed out (timid shot)
 
 ### Overs Display
 
 Cricket uses a special notation where `1.3` means 1 over and 3 balls — **not** 1.3 as a decimal.
 
 ```javascript
-// /lib/overs.js
+// src/lib/overs.js
 
 // For display: cricket notation
-ballsToOvers(3)   → "0.3"    // 3 balls bowled
-ballsToOvers(9)   → "1.3"    // 1 over and 3 balls
-ballsToOvers(50)  → "8.2"    // 8 overs and 2 balls
-ballsToOvers(72)  → "12.0"   // full innings
+ballsToOvers(3)   // → "0.3"   (3 balls bowled)
+ballsToOvers(9)   // → "1.3"   (1 over and 3 balls)
+ballsToOvers(50)  // → "8.2"   (8 overs and 2 balls)
+ballsToOvers(72)  // → "12.0"  (full innings)
 
 // For NRR math: true decimal
-ballsToDecimalOvers(3)  → 0.5     // half an over
-ballsToDecimalOvers(9)  → 1.5
-ballsToDecimalOvers(50) → 8.333
+ballsToDecimalOvers(3)   // → 0.5
+ballsToDecimalOvers(9)   // → 1.5
+ballsToDecimalOvers(50)  // → 8.333
 ```
 
 Storage rule: **always store balls as integer count of legal deliveries.** Never store overs as a float.
 
 ---
 
-## ↩️ Snapshot Undo System
+## Snapshot Undo System
 
 Early implementations tried to reverse individual ball effects (subtract runs, restore batters, fix strike rotation). This was fragile and broke constantly. We replaced it with a **state snapshot architecture**.
 
@@ -270,7 +277,7 @@ sequenceDiagram
     participant LS as localStorage
 
     Note over UI,LS: Recording a ball
-    UI->>MC: dispatch(RECORD_BALL, ball_data)
+    UI->>MC: dispatch(SCORE_BALL, ball_data)
     MC->>MC: Capture complete innings state
     MC->>MC: Push snapshot to undo history (max 20)
     MC->>MC: Apply ball effects to state
@@ -290,15 +297,15 @@ sequenceDiagram
 | Approach | Pros | Cons |
 |----------|------|------|
 | **Surgical reversal** | Low storage | Breaks on complex interactions (no-ball + run out + odd runs + free hit). Every new feature adds reversal logic. |
-| **Snapshot restore** ✅ | Always correct. No reversal logic. Jump back multiple balls. | ~2–5 KB per ball. 20 snapshots ≈ 100 KB per innings. |
+| **Snapshot restore** | Always correct. No reversal logic. Jump back multiple balls. | ~2–5 KB per ball. 20 snapshots = ~100 KB per innings. |
 
 Each snapshot stores the **complete innings state**: team total, all batter scores, all bowler figures, striker/non-striker, free hit flag, fall of wickets, fielding events, and partnership data. Restoring a snapshot is a single atomic write — no calculations, no missed edge cases.
 
-**Limit: 20 snapshots per innings** (oldest deleted when 21st is created). The user presses a single Undo button repeatedly — each press goes back one ball. Simple mental model, reliable architecture.
+**Limit: 20 snapshots per innings** (oldest deleted when 21st is created). Each undo press goes back one ball.
 
 ---
 
-## 🗄 Data Layer
+## Data Layer
 
 The app uses a **dual persistence strategy**: Firebase Realtime Database for cross-device sync, and localStorage for offline resilience.
 
@@ -306,7 +313,7 @@ The app uses a **dual persistence strategy**: Firebase Realtime Database for cro
 
 Real-time sync is handled by `useFirebaseSync.js`, a custom hook that:
 
-- **Writes** tournament and match state to Firebase with 500ms debouncing
+- **Writes** tournament and match state to Firebase with configurable debouncing (500–800ms)
 - **Reads** live updates via `onValue` listeners for spectator mode
 - **Falls back** to localStorage when Firebase is unavailable (no internet on match day)
 - **Handles** Firebase's array-to-object serialization quirks with `deepRestoreArrays()`
@@ -347,17 +354,17 @@ BrowserRouter
 
 ---
 
-## 📊 NRR Calculation
+## NRR Calculation
 
 Net Run Rate in a multi-innings cumulative format requires careful handling.
 
 ```
-NRR = (Total runs scored ÷ Total overs faced) − (Total runs conceded ÷ Total overs bowled)
+NRR = (Total runs scored / Total overs faced) - (Total runs conceded / Total overs bowled)
 ```
 
 **Key rules:**
 
-- Each match = **24 overs per team** maximum (2 innings × 12 overs)
+- Each match = **24 overs per team** maximum (2 innings x 12 overs)
 - If a team is **all out**, the full **12 overs** are counted for NRR (not actual overs faced) — standard ICC limited-overs convention
 - Follow-on does not change the calculation — only the batting order changes
 - Uses `ballsToDecimalOvers()` for true decimal math (not cricket notation)
@@ -375,30 +382,7 @@ flowchart LR
 
 ---
 
-## ⏱ Pace of Play Enforcement
-
-Instead of reducing overs (which distorts strategy), NCC Edition 5 uses **progressive fielding restriction penalties**.
-
-```
-Innings time limit: 50 minutes
-
-IF innings exceeds 50 minutes:
-│
-├─ FIELDING side causing delay (umpire discretion):
-│   ├─ +5 min: max outside circle 5 → 4
-│   ├─ +10 min: 4 → 3
-│   ├─ +15 min: 3 → 2
-│   ├─ +20 min: 2 → 1
-│   └─ +25 min: 1 → 0 (all fielders inside circle)
-│   Penalty is PERMANENT — cannot be reversed.
-│
-└─ BATTING side causing delay (umpire discretion):
-    └─ 5-run penalty per 5-minute block
-```
-
----
-
-## 🏆 Tournament Structure
+## Tournament Structure
 
 ```mermaid
 flowchart TD
@@ -422,7 +406,7 @@ flowchart TD
     F1 --> Final
     E -->|Winner| Final
 
-    Final --> Champion[🏆 Champion]
+    Final --> Champion[Champion]
 
     style F1 fill:#1b5e20,color:#fff
     style Champion fill:#f9a825,color:#000
@@ -432,11 +416,22 @@ flowchart TD
 
 **Points:** Win = 2, Tie/NR = 1, Loss = 0
 
-**Tiebreakers (in order):** NRR → Head-to-head → Total runs scored
+**Tiebreakers:** Points (desc) → NRR (desc)
 
 ---
 
-## 🚀 Getting Started
+## Pace of Play Rules
+
+> **Note:** These rules are from the [official NCC Edition 5 rulebook](NCC_Edition5_Official_Rules.docx) and are enforced by umpires on the field. The app does not currently track pace of play — this is a potential future feature.
+
+Instead of reducing overs, NCC Edition 5 uses **progressive fielding restriction penalties**:
+
+- **Fielding delay:** Every 5 minutes over the 50-minute innings limit, max fielders outside the circle decreases by 1 (5 → 4 → 3 → 2 → 1 → 0). Permanent once applied.
+- **Batting delay:** 5-run penalty per 5-minute block, at umpire's discretion.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
@@ -446,8 +441,8 @@ flowchart TD
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/ncc-edition-5.git
-cd ncc-edition-5/CricketScoringApp
+git clone https://github.com/vishnukadiyala/CricketScoringApp.git
+cd CricketScoringApp
 npm install
 ```
 
@@ -489,36 +484,64 @@ npm run preview   # Preview the production build locally
 
 The build produces code-split bundles: `vendor-react`, `vendor-firebase`, and lazy-loaded route chunks.
 
+---
+
+## Testing
+
+The scoring engine is the most critical piece — a bug during a live match produces wrong scorecards and corrupts tournament standings.
+
 ### Running Tests
 
 ```bash
-npm test                    # Run all 305+ tests
+npm test                    # Run all 529 tests
 npm run test:watch          # Watch mode for development
 ```
 
-Test files are co-located with their modules and in `src/lib/__tests__/`:
+### Test Suite (20 files, 529 tests)
 
-```bash
-# Key test suites
-src/lib/__tests__/scoring-engine.test.js   # Ball recording, extras, wickets
-src/lib/__tests__/overs.test.js            # Cricket notation conversions
-src/lib/__tests__/super-over.test.js       # Super over mechanics
-src/lib/__tests__/undo.test.js             # Snapshot undo system
-src/lib/__tests__/rotation.test.js         # Squad rotation validation
-src/lib/__tests__/chase-completion.test.js # Target chase & innings end
-src/lib/__tests__/extras-cascade.test.js   # Extras attribution accuracy
-src/lib/__tests__/fielder-attribution.test.js  # Dismissal fielder tracking
-src/lib/__tests__/strike-rotation.test.js  # Striker/non-striker swaps
-src/lib/__tests__/tournament.test.js       # NRR & points table
-src/lib/__tests__/stats-comprehensive.test.js  # Leaderboards
-src/context/MatchContext.test.js           # Match state machine
-src/context/TournamentContext.test.js      # Tournament state
-src/e2e/tournament.test.js                # End-to-end tournament flow
 ```
+src/lib/__tests__/
+  ├── scoring-engine.test.js       # Ball recording, extras, wickets
+  ├── overs.test.js                # Cricket notation conversions
+  ├── super-over.test.js           # Super over mechanics
+  ├── undo.test.js                 # Snapshot undo system
+  ├── rotation.test.js             # Squad rotation validation
+  ├── chase-completion.test.js     # Target chase & innings end
+  ├── extras-cascade.test.js       # Extras attribution accuracy
+  ├── fielder-attribution.test.js  # Dismissal fielder tracking
+  ├── strike-rotation.test.js      # Striker/non-striker swaps
+  ├── tournament.test.js           # NRR & points table
+  ├── stats-comprehensive.test.js  # Leaderboards & qualifiers
+  ├── data-integrity.test.js       # Data consistency checks
+  └── team-management.test.js      # Team CRUD operations
+
+src/lib/
+  ├── playerStats.test.js          # Individual player analytics
+  ├── squadUtils.test.js           # Squad migration utilities
+  ├── standings.test.js            # Standings calculation
+  └── stats.test.js                # Stats data loading
+
+src/context/
+  ├── MatchContext.test.js          # Match state machine
+  └── TournamentContext.test.js     # Tournament state
+
+src/e2e/
+  └── tournament.test.js            # End-to-end tournament flow
+```
+
+### Edge Cases That Broke Things
+
+These are real bugs found and fixed during development:
+
+- **Overs showing `0` instead of `0.3`** — Integer division truncation. Fixed with cricket notation utility.
+- **Innings victory not detected** — App forced a 4th innings after follow-on domination. Fixed with post-3rd-innings victory check.
+- **Super Over allowing 3 wickets** — Should be 2 (3 batters, 2 can get out). Fixed wicket limit.
+- **NRR using actual overs for all-outs** — Must use full 12 overs per ICC convention. Display shows actual; NRR uses full.
+- **Firebase arrays restored as objects** — Firebase converts sparse arrays to objects. Fixed with `deepRestoreArrays()` utility.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 CricketScoringApp/
@@ -565,7 +588,7 @@ CricketScoringApp/
 │   │   ├── constants.js                  # NCC Edition 5 rules & limits
 │   │   ├── overs.js                      # Cricket notation utilities
 │   │   ├── standings.js                  # NRR calculation & points table
-│   │   ├── stats.js                      # Match data loading & restoration
+│   │   ├── stats.js                      # Match data loading & leaderboards
 │   │   ├── playerStats.js               # Individual player analytics
 │   │   ├── spirit.js                     # Rotation diversity metrics
 │   │   ├── squadUtils.js                # Squad migration & player management
@@ -575,7 +598,7 @@ CricketScoringApp/
 │   │   ├── firebase.js                  # Firebase initialization & exports
 │   │   ├── storage.js                   # localStorage persistence layer
 │   │   ├── useFirebaseSync.js           # Real-time sync hook (debounced)
-│   │   └── __tests__/                   # Test suite (305+ tests)
+│   │   └── __tests__/                   # 13 focused test suites
 │   │
 │   └── e2e/
 │       └── tournament.test.js            # End-to-end tournament flow
@@ -596,33 +619,7 @@ CricketScoringApp/
 
 ---
 
-## 🧪 Testing Philosophy
-
-The scoring engine is the most critical piece of software in this project. A bug during a live match produces wrong scorecards and tournament standings.
-
-### Test Coverage Priority
-
-| Module | Target | Why |
-|--------|--------|-----|
-| `MatchContext.jsx` (scoring) | >95% | Every ball type, every edge case |
-| `standings.js` | >90% | NRR calculation, points table sorting |
-| `SquadRotation` logic | >90% | Substitution validation |
-| `overs.js` | 100% | Zero tolerance for display errors |
-| `stats.js` | >85% | Qualifier thresholds, cross-innings accuracy |
-
-### Edge Cases That Broke Things
-
-These are real bugs we found and fixed:
-
-- **Overs showing `0` instead of `0.3`** — Integer division truncation. Fixed with cricket notation utility.
-- **Innings victory not detected** — App forced a 4th innings after follow-on domination. Fixed with post-3rd-innings victory check.
-- **Super Over allowing 3 wickets** — Should be 2 (3 batters, 2 can get out). Fixed wicket limit.
-- **NRR using actual overs for all-outs** — Must use full 12 overs per ICC convention. Display shows actual; NRR uses full.
-- **Firebase arrays restored as objects** — Firebase converts sparse arrays to objects. Fixed with `deepRestoreArrays()` utility.
-
----
-
-## 🏏 Cricket Rules Quick Reference
+## Cricket Rules Quick Reference
 
 For developers unfamiliar with cricket — here's what you need to know to understand the codebase:
 
@@ -630,18 +627,19 @@ For developers unfamiliar with cricket — here's what you need to know to under
 |---------|-------------|
 | Over | Set of 6 legal deliveries by one bowler |
 | Wide | Ball too far from batter. +1 run penalty, extra ball bowled |
-| No-ball | Illegal delivery (foot over crease). +1 run, extra ball, next ball = free hit |
+| No-ball | Illegal delivery (foot over crease). +1 run, extra ball, next ball is a free hit |
 | Free hit | After a no-ball, batter can't be out (except run out) |
-| Bye | Ball passes everyone, batters run. Runs to team, not batter |
-| Leg bye | Ball hits batter's body, batters run. Runs to team, not batter |
+| Bye | Ball passes everyone, batters run. Runs to team total, not to batter's score |
+| Leg bye | Ball hits batter's body, batters run. Runs to team total, not to batter's score |
 | All out | 10 wickets fallen = innings over (11 players, 10 can get out) |
 | NRR | Net Run Rate — the cricket equivalent of goal difference |
 | Follow-on | Dominant team can make the other team bat twice in a row |
 | Innings victory | Team wins without needing to bat again (follow-on only) |
+| Super Over | Tiebreaker: 6 balls per side, 3 batters nominated, max 2 wickets |
 
 ---
 
-## 📄 License
+## License
 
 This project is built for the Norman Cricket Championship community in Norman, Oklahoma.
 
