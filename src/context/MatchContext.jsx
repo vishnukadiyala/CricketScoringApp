@@ -873,9 +873,30 @@ function restoreInningsDefaults(state) {
       extras: inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
     }
   })
+  // Restore super over sub-fields (Firebase drops empty arrays/objects)
+  let superOver = state.superOver
+  if (superOver) {
+    const restoreSOInnings = (inn) => {
+      if (!inn) return inn
+      return {
+        ...inn,
+        ballLog: inn.ballLog || [],
+        extras: inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
+      }
+    }
+    superOver = {
+      ...superOver,
+      team1Batsmen: superOver.team1Batsmen || [],
+      team2Batsmen: superOver.team2Batsmen || [],
+      innings1: restoreSOInnings(superOver.innings1),
+      innings2: restoreSOInnings(superOver.innings2),
+    }
+  }
+
   return {
     ...state,
     innings,
+    superOver,
     inningsOrder: Array.isArray(state.inningsOrder) ? state.inningsOrder : (state.inningsOrder ? Object.values(state.inningsOrder) : []),
     squads: { team1: state.squads?.team1 || [], team2: state.squads?.team2 || [] },
     activeRosters: { team1: state.activeRosters?.team1 || [], team2: state.activeRosters?.team2 || [] },
