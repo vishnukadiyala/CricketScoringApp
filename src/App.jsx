@@ -10,6 +10,7 @@ const TeamsPage = lazy(() => import('./pages/TeamsPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const StatsPage = lazy(() => import('./pages/StatsPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const CommentaryPage = lazy(() => import('./pages/CommentaryPage'))
 
 function PageLoader() {
   return <div className="app"><main className="app-main"><div className="card" style={{ textAlign: 'center' }}>Loading...</div></main></div>
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
           <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="organizer"><AdminPage /></ProtectedRoute>} />
+          <Route path="/match/:id/commentary" element={<ProtectedRoute><CommentaryPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>
       <NavBar />

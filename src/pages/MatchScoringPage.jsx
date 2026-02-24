@@ -1,6 +1,7 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTournament } from '../context/TournamentContext'
 import { MatchProvider } from '../context/MatchContext'
+import { CommentaryProvider, useCommentary } from '../context/CommentaryContext'
 import { extractTeamSummaries } from '../lib/standings'
 import { getActivePlayerNames } from '../lib/squadUtils'
 import { useEffect, useRef } from 'react'
@@ -105,20 +106,46 @@ export default function MatchScoringPage() {
           onMatchComplete={handleComplete}
           initialConfig={initialConfig}
         >
-          <ErrorBoundary>
-            <MatchSetup />
-            <BattingOrder />
-            <ScoreDisplay />
-            <Scoring />
-            <BallHistoryTimeline />
-            <OverSummary />
-            <InningsBreak />
-            <SquadRotation />
-            <SuperOver />
-            <MatchResult isTournament />
-          </ErrorBoundary>
+          <CommentaryProvider matchId={id}>
+            <ErrorBoundary>
+              <MatchSetup />
+              <BattingOrder />
+              <ScoreDisplay />
+              <Scoring />
+              <BallHistoryTimeline />
+              <OverSummary />
+              <InningsBreak />
+              <SquadRotation />
+              <SuperOver />
+              <MatchResult isTournament />
+              <CommentaryToggle matchId={id} />
+            </ErrorBoundary>
+          </CommentaryProvider>
         </MatchProvider>
       </main>
+    </div>
+  )
+}
+
+function CommentaryToggle({ matchId }) {
+  const { isEnabled, isConnected, isGenerating, toggleEnabled } = useCommentary()
+
+  return (
+    <div className="commentary-toggle-area">
+      <button
+        className={`commentary-toggle ${isEnabled ? 'active' : ''} ${isGenerating ? 'generating' : ''}`}
+        onClick={toggleEnabled}
+        title={isEnabled ? 'Disable AI Commentary' : 'Enable AI Commentary'}
+      >
+        <span className="commentary-toggle-icon">{'\uD83C\uDFA4'}</span>
+        {isEnabled && !isConnected && <span className="commentary-toggle-dot disconnected" />}
+        {isEnabled && isConnected && <span className="commentary-toggle-dot connected" />}
+      </button>
+      {isEnabled && (
+        <Link to={`/match/${matchId}/commentary`} className="commentary-view-link">
+          View Commentary
+        </Link>
+      )}
     </div>
   )
 }

@@ -3,5 +3,7 @@ dist/
 .claude/
 .env
 .env.local
+server/.env
+server/node_modules/
 
 .vercel

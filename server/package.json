@@ -1,0 +1,17 @@
+{
+  "name": "commentary-server",
+  "version": "1.0.0",
+  "description": "Backend proxy for Nova Sonic AI cricket commentary",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.750.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}

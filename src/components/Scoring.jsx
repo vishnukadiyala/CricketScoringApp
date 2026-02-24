@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { useMatch } from '../context/MatchContext'
+import { useCommentary } from '../context/CommentaryContext'
 import { MAX_OVERS_PER_BOWLER, MAX_WICKETS } from '../lib/constants'
 import { formatDismissal } from '../lib/dismissalText'
 
 export default function Scoring() {
+  const matchState = useMatch()
   const {
     phase, innings, currentInnings, activeRosters, team1,
     lastBallWasNoBall, canUndo, dispatch,
-  } = useMatch()
+  } = matchState
+  const commentary = useCommentary()
   const [showExtras, setShowExtras] = useState(false)
   const [showWicket, setShowWicket] = useState(false)
   const [wicketType, setWicketType] = useState('')
@@ -141,19 +144,23 @@ export default function Scoring() {
 
   const scoreBall = (runs) => {
     handleAction(() => {
-      dispatch({ type: 'SCORE_BALL', runs, runType: 'bat' })
+      const action = { type: 'SCORE_BALL', runs, runType: 'bat' }
+      dispatch(action)
+      commentary.requestCommentary(matchState, action)
     })
   }
 
   const scoreExtra = () => {
     if (!extraType) return
     handleAction(() => {
-      dispatch({
+      const action = {
         type: 'SCORE_BALL',
         runs: extraRuns,
         extraType,
         runType: extraType === 'noBall' ? 'bat' : 'extra',
-      })
+      }
+      dispatch(action)
+      commentary.requestCommentary(matchState, action)
       setShowExtras(false)
       setExtraType('')
       setExtraRuns(0)
@@ -180,7 +187,7 @@ export default function Scoring() {
     if (!wicketType) return
     if (inn.wickets < MAX_WICKETS - 1 && !newBatsman) return
     handleAction(() => {
-      dispatch({
+      const action = {
         type: 'SCORE_BALL',
         runs: wicketType === 'runOut' ? runOutRuns : 0,
         wicket: true,
@@ -190,7 +197,9 @@ export default function Scoring() {
         fielder: fielder || undefined,
         fielder2: fielder2 || undefined,
         isDirectHit: isDirectHit || undefined,
-      })
+      }
+      dispatch(action)
+      commentary.requestCommentary(matchState, action)
       resetWicketState()
     })
   }

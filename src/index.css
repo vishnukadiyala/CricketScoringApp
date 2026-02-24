@@ -3262,3 +3262,237 @@ button:focus-visible {
 .ball-timeline-confirm span {
   flex: 1;
 }
+
+/* ── AI Commentary ──────────────────────────────────────────── */
+
+.commentary-toggle-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 0;
+}
+
+.commentary-toggle {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface-light);
+  border: 2px solid var(--border);
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commentary-toggle.active {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.commentary-toggle.recording {
+  animation: commentary-pulse 1.2s infinite;
+}
+
+.commentary-toggle.generating {
+  border-color: var(--four);
+}
+
+.commentary-toggle-icon {
+  line-height: 1;
+}
+
+.commentary-toggle-dot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.commentary-toggle-dot.connected {
+  background: var(--success);
+}
+
+.commentary-toggle-dot.disconnected {
+  background: var(--danger);
+}
+
+.commentary-view-link {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.commentary-view-link:hover {
+  text-decoration: underline;
+}
+
+@keyframes commentary-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
+
+/* Commentary page */
+
+.commentary-page {
+  padding: 0;
+}
+
+.commentary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.commentary-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.commentary-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.commentary-error .dismiss {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.commentary-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 32px 16px;
+  font-size: 14px;
+}
+
+.commentary-log {
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.commentary-innings-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.commentary-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.commentary-entry.generating .commentary-text {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.commentary-entry.error .commentary-text {
+  color: var(--danger);
+}
+
+.commentary-ball-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 36px;
+}
+
+.commentary-ball-info .ball-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--surface-light);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.commentary-ball-info .ball-badge.wicket { background: var(--danger); color: #fff; border-color: var(--danger); }
+.commentary-ball-info .ball-badge.four { background: var(--four); color: #000; border-color: var(--four); }
+.commentary-ball-info .ball-badge.six { background: var(--six); color: #fff; border-color: var(--six); }
+.commentary-ball-info .ball-badge.dot { opacity: 0.6; }
+.commentary-ball-info .ball-badge.extra { background: #1e40af; border-color: #2563eb; }
+
+.commentary-over {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.commentary-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.commentary-play-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+
+.commentary-play-btn:hover {
+  opacity: 0.85;
+}
+
+.commentary-play-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.commentary-generating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.commentary-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: commentary-pulse 1.2s infinite;
+}
