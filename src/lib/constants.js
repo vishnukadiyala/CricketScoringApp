@@ -10,7 +10,7 @@ export const PLAYING_XI = 11
 export const MIN_SUBSTITUTIONS = 1
 export const MAX_SUBSTITUTIONS = 5
 export const SUPER_OVER_BALLS = 6
-export const SUPER_OVER_WICKETS = 3
+export const SUPER_OVER_WICKETS = 2
 export const SUPER_OVER_BATSMEN = 3
 
 // Follow-on threshold: team 2's score must be less than this fraction of team 1's score.

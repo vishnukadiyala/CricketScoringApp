@@ -1978,6 +1978,123 @@ button:focus-visible {
   color: var(--text-muted);
 }
 
+/* ===== SUPER OVER SCOREBOARD ===== */
+.so-scoreboard {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+
+.so-scoreboard-main {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.so-scoreboard-score {
+  font-size: 42px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.so-scoreboard-balls {
+  display: block;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.so-scoreboard-batsmen {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-bottom: 8px;
+}
+
+.so-batsman-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+
+.so-batsman-indicator {
+  width: 12px;
+  font-weight: 800;
+  color: var(--success);
+  text-align: center;
+}
+
+.so-batsman-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.so-batsman-stats {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.so-scoreboard-bowler {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.so-bowler-label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.so-bowler-name {
+  font-weight: 700;
+  flex: 1;
+}
+
+.so-bowler-figures {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.so-scoreboard-footer {
+  padding-top: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.so-target-info {
+  color: var(--four);
+}
+
+.so-balls-remaining {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Between innings batsmen summary */
+.so-between-batsmen {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.so-between-batsman-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
 /* Super Over scorecard styles */
 .so-scorecard-innings {
   background: var(--bg);

@@ -15,7 +15,7 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
 
     const matchPlayers = new Set()
 
-    matchState.innings.forEach(inn => {
+    const processInnings = (inn) => {
       if (!inn) return
 
       // Batting stats: if this team was batting
@@ -66,7 +66,16 @@ export function aggregatePlayerStats(teamId, teamName, completedMatchStates) {
           }
         })
       }
-    })
+    }
+
+    matchState.innings.forEach(inn => processInnings(inn))
+
+    // Also process super over innings
+    if (matchState.superOver) {
+      ;[matchState.superOver.innings1, matchState.superOver.innings2].forEach(inn => {
+        if (inn?.batsmen?.length > 0) processInnings(inn)
+      })
+    }
 
     // Count match participation
     matchPlayers.forEach(name => {

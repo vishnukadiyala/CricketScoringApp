@@ -739,153 +739,130 @@ describe('Squad Rotation', () => {
 })
 
 describe('Super Over', () => {
+  // Helper: set up super over through opener selection for innings 1
+  // battingFirst = Team B (inningsOrder[3]), so innings 1 uses Team B batsmen, Team A bowler
+  function setupSuperOverInnings1(extraState = {}) {
+    let state = setupMatch()
+    state = { ...state, phase: 'super-over', ...extraState }
+    state = matchReducer(state, { type: 'START_SUPER_OVER' })
+    state = matchReducer(state, {
+      type: 'SET_SUPER_OVER_PLAYERS',
+      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
+      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
+    })
+    state = matchReducer(state, {
+      type: 'SET_SUPER_OVER_OPENERS',
+      openerOnStrike: 'B1', openerNonStrike: 'B2', inningsNumber: 1,
+    })
+    return state
+  }
+
+  // Helper: complete innings 1 and set up innings 2
+  // battingSecond = Team A, so innings 2 uses Team A batsmen, Team B bowler
+  function setupSuperOverInnings2(state) {
+    state = matchReducer(state, { type: 'SO_NEXT_INNINGS' })
+    state = matchReducer(state, {
+      type: 'SET_SUPER_OVER_OPENERS',
+      openerOnStrike: 'A1', openerNonStrike: 'A2', inningsNumber: 2,
+    })
+    return state
+  }
+
   it('should start super over when match tied', () => {
     let state = setupMatch()
     state = { ...state, phase: 'super-over' }
     state = matchReducer(state, { type: 'START_SUPER_OVER' })
     expect(state.superOver).not.toBeNull()
     expect(state.superOver.phase).toBe('select-players')
+    expect(state.superOver.innings1).toBeNull()
+    expect(state.superOver.innings2).toBeNull()
   })
 
   it('should score super over balls', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'],
-      team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'],
-      team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     expect(state.superOver.phase).toBe('batting-1')
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4 })
-    expect(state.superOver.innings1.runs).toBe(4)
+    expect(state.superOver.innings1.totalRuns).toBe(4)
     expect(state.superOver.innings1.fours).toBe(1)
   })
 
   it('should end super over innings after 6 balls', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
-    expect(state.superOver.phase).toBe('batting-2')
+    expect(state.superOver.phase).toBe('between-innings')
+    state = setupSuperOverInnings2(state)
     expect(state.superOver.innings2.target).toBe(7) // 6 + 1
   })
 
-  it('should end super over innings after 3 wickets', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
-    // 3 wickets should end the innings
-    state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 0, wicket: true })
-    state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 0, wicket: true })
-    state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 0, wicket: true })
-    expect(state.superOver.innings1.wickets).toBe(3)
-    expect(state.superOver.phase).toBe('batting-2')
+  it('should end super over innings after 2 wickets', () => {
+    let state = setupSuperOverInnings1()
+    // 1st wicket — new batter
+    state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 0, wicket: true, dismissalType: 'bowled', newBatsman: 'B3' })
+    // 2nd wicket — innings ends
+    state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 0, wicket: true, dismissalType: 'bowled' })
+    expect(state.superOver.innings1.wickets).toBe(2)
+    expect(state.superOver.phase).toBe('between-innings')
+    state = setupSuperOverInnings2(state)
     expect(state.superOver.innings2.target).toBe(1) // 0 + 1
   })
 
   it('should handle extras in super over (wide)', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     // Wide with 2 extra runs
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 2, extraType: 'wide' })
-    expect(state.superOver.innings1.runs).toBe(3) // 1 + 2
+    expect(state.superOver.innings1.totalRuns).toBe(3) // 1 + 2
     expect(state.superOver.innings1.extras.wides).toBe(1)
-    expect(state.superOver.innings1.balls).toBe(0) // Wide is not a legal delivery
-    expect(state.superOver.innings1.ballLog).toEqual(['Wd+2'])
+    expect(state.superOver.innings1.ballsInCurrentOver).toBe(0) // Wide is not a legal delivery
+    expect(state.superOver.innings1.currentOver).toEqual(['Wd+2'])
   })
 
   it('should handle no-ball in super over', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4, extraType: 'noBall', runType: 'bat' })
-    expect(state.superOver.innings1.runs).toBe(5) // 1 + 4
+    expect(state.superOver.innings1.totalRuns).toBe(5) // 1 + 4
     expect(state.superOver.innings1.extras.noBalls).toBe(1)
     expect(state.superOver.innings1.fours).toBe(1) // batted boundary on no-ball
-    expect(state.superOver.innings1.balls).toBe(0) // no-ball not legal
+    expect(state.superOver.innings1.ballsInCurrentOver).toBe(0) // no-ball not legal
   })
 
   it('should handle byes and leg-byes in super over', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 2, extraType: 'bye' })
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1, extraType: 'legBye' })
-    expect(state.superOver.innings1.runs).toBe(3)
+    expect(state.superOver.innings1.totalRuns).toBe(3)
     expect(state.superOver.innings1.extras.byes).toBe(2)
     expect(state.superOver.innings1.extras.legByes).toBe(1)
-    expect(state.superOver.innings1.balls).toBe(2) // both are legal deliveries
-    expect(state.superOver.innings1.ballLog).toEqual(['B2', 'LB1'])
+    expect(state.superOver.innings1.ballsInCurrentOver).toBe(2) // both are legal deliveries
+    expect(state.superOver.innings1.currentOver).toEqual(['B2', 'LB1'])
   })
 
   it('should chase target early in second innings', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     // First innings: 6 runs (1 per ball)
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
-    expect(state.superOver.phase).toBe('batting-2')
+    expect(state.superOver.phase).toBe('between-innings')
+    state = setupSuperOverInnings2(state)
     expect(state.superOver.innings2.target).toBe(7)
 
     // Second innings: hit a six + two = 8 in 2 balls, chasing 7
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 6 })
     expect(state.superOver.phase).toBe('batting-2') // not done yet (6 < 7)
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 2 })
-    expect(state.superOver.innings2.runs).toBe(8)
+    expect(state.superOver.innings2.totalRuns).toBe(8)
     expect(state.superOver.phase).toBe('result') // target chased
   })
 
   it('should determine winner — first innings team wins', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     // First innings: 12 runs
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 2 })
     }
+    state = setupSuperOverInnings2(state)
     // Second innings: 6 runs (can't reach 13)
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
@@ -897,18 +874,12 @@ describe('Super Over', () => {
   })
 
   it('should determine winner — second innings team wins', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     // First innings: 6 runs
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
+    state = setupSuperOverInnings2(state)
     // Second innings: chase 7, score 8
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4 })
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4 })
@@ -919,26 +890,17 @@ describe('Super Over', () => {
   })
 
   it('should use boundary count tiebreaker when super over tied', () => {
-    let state = setupMatch()
-    // Set some boundaries in the regular innings
-    state = {
-      ...state,
-      phase: 'super-over',
+    let state = setupSuperOverInnings1({
       cumulativeBoundaries: {
         team1: { fours: 10, sixes: 2 },
         team2: { fours: 8, sixes: 1 },
       },
-    }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
     })
     // Both score exactly 6 runs, no boundaries in super over
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
+    state = setupSuperOverInnings2(state)
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
@@ -950,25 +912,17 @@ describe('Super Over', () => {
   })
 
   it('should flag another Super Over when boundary count also tied', () => {
-    let state = setupMatch()
-    state = {
-      ...state,
-      phase: 'super-over',
+    let state = setupSuperOverInnings1({
       cumulativeBoundaries: {
         team1: { fours: 5, sixes: 2 },
         team2: { fours: 5, sixes: 2 },
       },
-    }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
     })
     // Both score 6 with no boundaries
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
+    state = setupSuperOverInnings2(state)
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
@@ -980,22 +934,17 @@ describe('Super Over', () => {
   })
 
   it('should restart super over after tied-again', () => {
-    let state = setupMatch()
-    state = {
-      ...state,
-      phase: 'super-over',
+    let state = setupSuperOverInnings1({
       cumulativeBoundaries: {
         team1: { fours: 5, sixes: 2 },
         team2: { fours: 5, sixes: 2 },
       },
-    }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
     })
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
+      state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
+    }
+    state = setupSuperOverInnings2(state)
+    for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
     state = matchReducer(state, { type: 'SUPER_OVER_RESULT' })
@@ -1004,28 +953,23 @@ describe('Super Over', () => {
     // Restart
     state = matchReducer(state, { type: 'RESTART_SUPER_OVER' })
     expect(state.superOver.phase).toBe('select-players')
-    expect(state.superOver.innings1.runs).toBe(0)
-    expect(state.superOver.innings2.runs).toBe(0)
+    expect(state.superOver.innings1).toBeNull()
+    expect(state.superOver.innings2).toBeNull()
     expect(state.result).toBe('')
   })
 
   it('should end as tie if organizer declines another Super Over', () => {
-    let state = setupMatch()
-    state = {
-      ...state,
-      phase: 'super-over',
+    let state = setupSuperOverInnings1({
       cumulativeBoundaries: {
         team1: { fours: 5, sixes: 2 },
         team2: { fours: 5, sixes: 2 },
       },
-    }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
     })
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
+      state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
+    }
+    state = setupSuperOverInnings2(state)
+    for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 1 })
     }
     state = matchReducer(state, { type: 'SUPER_OVER_RESULT' })
@@ -1034,34 +978,24 @@ describe('Super Over', () => {
   })
 
   it('should undo super over balls', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
-    state = matchReducer(state, {
-      type: 'SET_SUPER_OVER_PLAYERS',
-      team1Batsmen: ['A1','A2','A3'], team1Bowler: 'A4',
-      team2Batsmen: ['B1','B2','B3'], team2Bowler: 'B4',
-    })
+    let state = setupSuperOverInnings1()
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 4 })
     state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 6 })
-    expect(state.superOver.innings1.runs).toBe(10)
+    expect(state.superOver.innings1.totalRuns).toBe(10)
     expect(state.superOverSnapshots.length).toBe(2)
 
     state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
-    expect(state.superOver.innings1.runs).toBe(4)
+    expect(state.superOver.innings1.totalRuns).toBe(4)
     expect(state.superOverSnapshots.length).toBe(1)
 
     state = matchReducer(state, { type: 'UNDO_LAST_SUPER_OVER_BALL' })
-    expect(state.superOver.innings1.runs).toBe(0)
+    expect(state.superOver.innings1.totalRuns).toBe(0)
     expect(state.superOverSnapshots.length).toBe(0)
   })
 
-  it('should initialize super over innings with extras tracking', () => {
-    let state = setupMatch()
-    state = { ...state, phase: 'super-over' }
-    state = matchReducer(state, { type: 'START_SUPER_OVER' })
+  it('should initialize super over innings with extras tracking after opener selection', () => {
+    let state = setupSuperOverInnings1()
     expect(state.superOver.innings1.extras).toEqual({ wides: 0, noBalls: 0, byes: 0, legByes: 0 })
-    expect(state.superOver.innings2.extras).toEqual({ wides: 0, noBalls: 0, byes: 0, legByes: 0 })
   })
 })
 

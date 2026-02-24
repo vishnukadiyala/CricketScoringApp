@@ -116,6 +116,18 @@ export function filterMatchData(data, { stage = 'all', teamId = 'all' } = {}) {
   })
 }
 
+// ─── Super Over Innings Helper ──────────────────────────────────
+
+/**
+ * Extract super over innings that have batsmen data (i.e., were played).
+ * Returns array of innings objects compatible with main innings shape.
+ */
+export function getSuperOverInnings(matchState) {
+  if (!matchState?.superOver) return []
+  const so = matchState.superOver
+  return [so.innings1, so.innings2].filter(inn => inn?.batsmen?.length > 0)
+}
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 function isBetterFigures(a, b) {
@@ -198,12 +210,11 @@ export function computeBattingLeaderboard(matchData, teams) {
 
     const matchPlayers = new Set()
 
-    matchState.innings.forEach((inn, innIdx) => {
+    const processInnings = (inn, innIdx) => {
       if (!inn) return
 
       const battingTeamKey = getTeamKey(matchState, inn.battingTeam)
       const battingTeamId = matchMeta[`${battingTeamKey}Id`]
-      const bowlingTeamId = battingTeamKey === 'team1' ? matchMeta.team2Id : matchMeta.team1Id
 
       ;(inn.batsmen || []).forEach(bat => {
         if (!bat) return
@@ -256,9 +267,15 @@ export function computeBattingLeaderboard(matchData, teams) {
           matchNumber: matchMeta.matchNumber,
           matchType: matchMeta.type,
           inningsNumber: innIdx + 1,
+          isSuperOver: !!inn.isSuperOver,
         })
       })
-    })
+    }
+
+    matchState.innings.forEach((inn, innIdx) => processInnings(inn, innIdx))
+
+    // Also process super over innings
+    getSuperOverInnings(matchState).forEach((inn, i) => processInnings(inn, 100 + i))
 
     matchPlayers.forEach(key => {
       playerMap[key].matches++
@@ -375,7 +392,7 @@ export function computeBowlingLeaderboard(matchData) {
 
     const matchPlayers = new Set()
 
-    matchState.innings.forEach((inn, innIdx) => {
+    const processBowlingInnings = (inn, innIdx) => {
       if (!inn) return
 
       const bowlingTeamKey = getTeamKey(matchState, inn.bowlingTeam)
@@ -433,25 +450,15 @@ export function computeBowlingLeaderboard(matchData) {
           matchNumber: matchMeta.matchNumber,
           matchType: matchMeta.type,
           inningsNumber: innIdx + 1,
+          isSuperOver: !!inn.isSuperOver,
         })
       })
+    }
 
-      // Count dot balls from allOvers for bowlers on this team
-      // We attribute dots at innings level since we can't link overs to specific bowlers
-      // from allOvers alone — instead track at bowler level from ball display
-    })
+    matchState.innings.forEach((inn, innIdx) => processBowlingInnings(inn, innIdx))
 
-    // Count dot balls per bowler from allOvers data
-    matchState.innings.forEach(inn => {
-      if (!inn || !inn.allOvers) return
-      const bowlingTeamKey = getTeamKey(matchState, inn.bowlingTeam)
-      const bowlingTeamId = matchMeta[`${bowlingTeamKey}Id`]
-
-      // We can't easily map individual over balls to specific bowlers from allOvers,
-      // so we count total dots per innings and attribute proportionally to overs bowled.
-      // Better approach: count from bowler's overs directly using bowlerOversMap and allOvers order.
-      // For now, use allOvers total.
-    })
+    // Also process super over innings
+    getSuperOverInnings(matchState).forEach((inn, i) => processBowlingInnings(inn, 100 + i))
 
     matchPlayers.forEach(key => {
       playerMap[key].matches++
@@ -646,7 +653,7 @@ export function computeFieldingStats(matchData) {
   matchData.forEach(({ matchMeta, matchState }) => {
     if (!matchState || !matchState.innings) return
 
-    matchState.innings.forEach(inn => {
+    const processFieldingInnings = (inn) => {
       if (!inn) return
       const bowlingTeamKey = getTeamKey(matchState, inn.bowlingTeam)
       const bowlingTeamId = matchMeta[`${bowlingTeamKey}Id`]
@@ -693,7 +700,12 @@ export function computeFieldingStats(matchData) {
             break
         }
       })
-    })
+    }
+
+    matchState.innings.forEach(inn => processFieldingInnings(inn))
+
+    // Also process super over innings
+    getSuperOverInnings(matchState).forEach(inn => processFieldingInnings(inn))
   })
 
   return Object.values(playerMap).sort((a, b) => b.totalDismissals - a.totalDismissals)
@@ -789,7 +801,7 @@ export function computeTeamStats(matchData, teams) {
       }
     })
 
-    matchState.innings.forEach(inn => {
+    const processTeamInnings = (inn) => {
       if (!inn) return
 
       const battingTeamKey = getTeamKey(matchState, inn.battingTeam)
@@ -840,7 +852,12 @@ export function computeTeamStats(matchData, teams) {
           bwt.totalLegByes += inn.extras.legByes || 0
         }
       }
-    })
+    }
+
+    matchState.innings.forEach(inn => processTeamInnings(inn))
+
+    // Also process super over innings
+    getSuperOverInnings(matchState).forEach(inn => processTeamInnings(inn))
   })
 
   // Compute averages
@@ -1022,8 +1039,8 @@ export function getSuperOverRecords(matchData) {
       team2: matchState.team2,
       battingFirst: so.battingFirst,
       battingSecond: so.battingSecond,
-      innings1Runs: so.innings1?.runs ?? 0,
-      innings2Runs: so.innings2?.runs ?? 0,
+      innings1Runs: so.innings1?.totalRuns ?? so.innings1?.runs ?? 0,
+      innings2Runs: so.innings2?.totalRuns ?? so.innings2?.runs ?? 0,
       result: matchState.result,
       matchNumber: matchMeta.matchNumber,
     })
@@ -1057,7 +1074,7 @@ export function computeParticipation(matchData, teams) {
       if (!isTeam1 && !isTeam2) return
 
       const played = new Set()
-      matchState.innings.forEach(inn => {
+      const addFromInnings = (inn) => {
         if (!inn) return
         if (inn.battingTeam === team.name) {
           ;(inn.batsmen || []).forEach(b => { if (b) played.add(b.name) })
@@ -1065,7 +1082,9 @@ export function computeParticipation(matchData, teams) {
         if (inn.bowlingTeam === team.name) {
           ;(inn.bowlers || []).forEach(b => { if (b) played.add(b.name) })
         }
-      })
+      }
+      matchState.innings.forEach(inn => addFromInnings(inn))
+      getSuperOverInnings(matchState).forEach(inn => addFromInnings(inn))
 
       played.forEach(name => {
         if (playerMatches[name] !== undefined) {

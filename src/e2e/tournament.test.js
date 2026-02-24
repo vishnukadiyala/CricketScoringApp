@@ -378,14 +378,28 @@ describe('Full E2E Tournament Simulation', () => {
       team2Bowler: xi2[3],
     })
 
+    expect(state.superOver.phase).toBe('select-openers-1')
+
+    // Select openers for innings 1 (battingFirst = Beta = team2)
+    state = matchReducer(state, {
+      type: 'SET_SUPER_OVER_OPENERS',
+      openerOnStrike: xi2[0], openerNonStrike: xi2[1], inningsNumber: 1,
+    })
     expect(state.superOver.phase).toBe('batting-1')
 
     // Super over innings 1: score 2 per ball for 6 balls = 12
     for (let i = 0; i < 6; i++) {
       state = matchReducer(state, { type: 'SCORE_SUPER_OVER_BALL', runs: 2 })
     }
-    expect(state.superOver.innings1.runs).toBe(12)
-    expect(state.superOver.phase).toBe('batting-2')
+    expect(state.superOver.innings1.totalRuns).toBe(12)
+    expect(state.superOver.phase).toBe('between-innings')
+
+    // Transition to innings 2 and select openers (battingSecond = Alpha = team1)
+    state = matchReducer(state, { type: 'SO_NEXT_INNINGS' })
+    state = matchReducer(state, {
+      type: 'SET_SUPER_OVER_OPENERS',
+      openerOnStrike: xi1[0], openerNonStrike: xi1[1], inningsNumber: 2,
+    })
     expect(state.superOver.innings2.target).toBe(13)
 
     // Super over innings 2: score 1 per ball for 6 balls = 6 (loses)

@@ -2,7 +2,7 @@ import { createContext, useContext, useReducer, useEffect, useRef, useCallback, 
 import {
   MAX_OVERS_PER_BOWLER, MAX_WICKETS, BALLS_PER_OVER,
   FOLLOW_ON_THRESHOLD, MAX_UNDO_HISTORY,
-  SUPER_OVER_WICKETS,
+  SUPER_OVER_WICKETS, SUPER_OVER_BATSMEN,
 } from '../lib/constants'
 import { useFirebaseSync } from '../lib/useFirebaseSync'
 
@@ -50,6 +50,30 @@ const createInnings = (battingTeam, bowlingTeam, inningsNumber) => ({
   fours: 0,
   sixes: 0,
   bowlerOversMap: {},
+})
+
+const createSuperOverInnings = (battingTeam, bowlingTeam, inningsNum, batsmenNames, bowlerName) => ({
+  battingTeam,
+  bowlingTeam,
+  inningsNumber: inningsNum,
+  totalRuns: 0,
+  wickets: 0,
+  oversCompleted: 0,
+  ballsInCurrentOver: 0,
+  currentOver: [],
+  allOvers: [],
+  batsmen: batsmenNames.map(n => createBatsman(n)),
+  activeBatsmanIndex: 0,
+  nonStrikerIndex: 1,
+  bowlers: [createBowler(bowlerName)],
+  currentBowlerIndex: 0,
+  extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
+  fallOfWickets: [],
+  fours: 0,
+  sixes: 0,
+  bowlerOversMap: {},
+  target: 0,
+  isSuperOver: true,
 })
 
 const initialState = {
@@ -112,7 +136,7 @@ function getOrdinal(n) {
 }
 
 // Exported for testing
-export { initialState, createBatsman, createBowler, createInnings, getRunRate, getRequiredRunRate }
+export { initialState, createBatsman, createBowler, createInnings, createSuperOverInnings, getRunRate, getRequiredRunRate }
 
 export function matchReducer(state, action) {
   switch (action.type) {
@@ -550,22 +574,19 @@ export function matchReducer(state, action) {
     }
 
     case 'START_SUPER_OVER': {
-      const createSOInnings = () => ({
-        runs: 0, wickets: 0, balls: 0, ballLog: [], fours: 0, sixes: 0,
-        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
-      })
       return {
         ...state,
         superOver: {
-          phase: 'select-players', // select-players | batting-1 | batting-2 | result
+          phase: 'select-players',
           team1Batsmen: [],
           team1Bowler: '',
           team2Batsmen: [],
           team2Bowler: '',
           battingFirst: state.inningsOrder[3], // team that bowled last bats first in super over
           battingSecond: state.inningsOrder[2],
-          innings1: createSOInnings(),
-          innings2: { ...createSOInnings(), target: 0 },
+          innings1: null,
+          innings2: null,
+          lastBallWasNoBall: false,
         },
         superOverSnapshots: [],
         superOverSnapshotSeq: 0,
@@ -579,11 +600,41 @@ export function matchReducer(state, action) {
       so.team1Bowler = action.team1Bowler
       so.team2Batsmen = action.team2Batsmen
       so.team2Bowler = action.team2Bowler
-      so.phase = 'batting-1'
+      so.phase = 'select-openers-1'
       return { ...state, superOver: so }
     }
 
-    // Super over scoring — supports extras (wides, no-balls, byes, leg-byes)
+    case 'SET_SUPER_OVER_OPENERS': {
+      const so = structuredClone(state.superOver)
+      const { openerOnStrike, openerNonStrike, inningsNumber } = action
+      const isFirst = inningsNumber === 1
+
+      // Determine batting/bowling teams and nominees
+      const battingTeam = isFirst ? so.battingFirst : so.battingSecond
+      const bowlingTeam = isFirst ? so.battingSecond : so.battingFirst
+      const battingTeamKey = battingTeam === state.team1 ? 'team1' : 'team2'
+      const bowlingTeamKey = bowlingTeam === state.team1 ? 'team1' : 'team2'
+      const nominees = so[`${battingTeamKey}Batsmen`]
+      const bowlerName = so[`${bowlingTeamKey}Bowler`]
+
+      // Reorder: striker at 0, non-striker at 1, reserve at 2
+      const reserve = nominees.find(n => n !== openerOnStrike && n !== openerNonStrike)
+      const ordered = [openerOnStrike, openerNonStrike, reserve]
+
+      const innKey = isFirst ? 'innings1' : 'innings2'
+      so[innKey] = createSuperOverInnings(battingTeam, bowlingTeam, inningsNumber, ordered, bowlerName)
+
+      if (!isFirst && so.innings1) {
+        so[innKey].target = so.innings1.totalRuns + 1
+      }
+
+      so.phase = isFirst ? 'batting-1' : 'batting-2'
+      so.lastBallWasNoBall = false
+
+      return { ...state, superOver: so }
+    }
+
+    // Super over scoring — full rewrite mirroring SCORE_BALL
     case 'SCORE_SUPER_OVER_BALL': {
       const so = structuredClone(state.superOver)
       const isFirst = so.phase === 'batting-1'
@@ -593,74 +644,169 @@ export function matchReducer(state, action) {
       const soSnapshotData = structuredClone(state.superOver)
       const nextSOSeq = (state.superOverSnapshotSeq || 0) + 1
 
-      const runsScored = action.runs || 0
-      const isWicket = action.wicket || false
-      const extraType = action.extraType || null
-      const runType = action.runType || 'bat'
+      const { runType, runs: actionRuns, extraType: actionExtraType, wicket: actionWicket,
+              dismissalType: actionDismissalType, newBatsman: actionNewBatsman,
+              fielder: actionFielder, fielder2: actionFielder2,
+              isDirectHit: actionIsDirectHit, runOutBatsman: actionRunOutBatsman } = action
+      const runsScored = actionRuns || 0
+      const isWicket = actionWicket || false
+      const extraType = actionExtraType || null
+      const striker = inn.batsmen[inn.activeBatsmanIndex]
+      const bowler = inn.bowlers[inn.currentBowlerIndex]
+      // Save original indices before strike rotation (needed for run-out of non-striker)
+      const originalStrikerIdx = inn.activeBatsmanIndex
+      const originalNonStrikerIdx = inn.nonStrikerIndex
       let isLegalDelivery = true
       let ballDisplay = ''
 
+      // Handle extras — same logic as main match
       if (extraType === 'wide') {
         isLegalDelivery = false
-        inn.runs += 1 + runsScored
+        inn.totalRuns += 1 + runsScored
         inn.extras.wides += 1
+        bowler.runs += 1 + runsScored
         ballDisplay = runsScored > 0 ? `Wd+${runsScored}` : 'Wd'
+        if (runsScored % 2 === 1) {
+          ;[inn.activeBatsmanIndex, inn.nonStrikerIndex] = [inn.nonStrikerIndex, inn.activeBatsmanIndex]
+        }
       } else if (extraType === 'noBall') {
         isLegalDelivery = false
-        inn.runs += 1 + runsScored
+        inn.totalRuns += 1 + runsScored
         inn.extras.noBalls += 1
-        if (runType === 'bat' && runsScored === 4) inn.fours++
-        if (runType === 'bat' && runsScored === 6) inn.sixes++
+        bowler.runs += 1 + runsScored
+        if (runType === 'bat') {
+          striker.runs += runsScored
+          striker.balls += 1
+          if (runsScored === 4) { striker.fours++; inn.fours++ }
+          if (runsScored === 6) { striker.sixes++; inn.sixes++ }
+        }
         ballDisplay = runsScored > 0 ? `NB+${runsScored}` : 'NB'
+        if (runsScored % 2 === 1) {
+          ;[inn.activeBatsmanIndex, inn.nonStrikerIndex] = [inn.nonStrikerIndex, inn.activeBatsmanIndex]
+        }
       } else if (extraType === 'bye') {
-        inn.runs += runsScored
+        inn.totalRuns += runsScored
         inn.extras.byes += runsScored
+        striker.balls += 1
         ballDisplay = `B${runsScored}`
+        if (runsScored % 2 === 1) {
+          ;[inn.activeBatsmanIndex, inn.nonStrikerIndex] = [inn.nonStrikerIndex, inn.activeBatsmanIndex]
+        }
       } else if (extraType === 'legBye') {
-        inn.runs += runsScored
+        inn.totalRuns += runsScored
         inn.extras.legByes += runsScored
+        striker.balls += 1
         ballDisplay = `LB${runsScored}`
+        if (runsScored % 2 === 1) {
+          ;[inn.activeBatsmanIndex, inn.nonStrikerIndex] = [inn.nonStrikerIndex, inn.activeBatsmanIndex]
+        }
       } else {
         // Normal runs
-        inn.runs += runsScored
-        if (runsScored === 4) inn.fours++
-        if (runsScored === 6) inn.sixes++
-        ballDisplay = isWicket ? 'W' : runsScored.toString()
-      }
-
-      if (isWicket) {
-        inn.wickets++
-        ballDisplay = 'W'
-      }
-
-      if (isLegalDelivery) {
-        inn.balls += 1
-      }
-
-      inn.ballLog.push(ballDisplay)
-
-      // Check end of super over innings
-      const inningsOver = inn.balls >= BALLS_PER_OVER || inn.wickets >= SUPER_OVER_WICKETS
-
-      if (isFirst && inningsOver) {
-        so.innings2.target = inn.runs + 1
-        so.phase = 'batting-2'
-      } else if (!isFirst) {
-        // Check if target chased
-        if (inn.runs >= so.innings2.target) {
-          so.phase = 'result'
-        } else if (inningsOver) {
-          so.phase = 'result'
+        inn.totalRuns += runsScored
+        striker.runs += runsScored
+        striker.balls += 1
+        bowler.runs += runsScored
+        if (runsScored === 4) { striker.fours++; inn.fours++ }
+        if (runsScored === 6) { striker.sixes++; inn.sixes++ }
+        ballDisplay = runsScored.toString()
+        if (runsScored % 2 === 1) {
+          ;[inn.activeBatsmanIndex, inn.nonStrikerIndex] = [inn.nonStrikerIndex, inn.activeBatsmanIndex]
         }
       }
 
-      // Build ball_data for super over
+      // Handle wicket
+      if (isWicket) {
+        inn.wickets += 1
+        bowler.wickets += (actionDismissalType !== 'runOut' ? 1 : 0)
+        const isNonStrikerOut = actionDismissalType === 'runOut' && actionRunOutBatsman === 'nonStriker'
+        // Use original indices (before strike rotation) to identify the dismissed batsman
+        const dismissedIdx = isNonStrikerOut ? originalNonStrikerIdx : originalStrikerIdx
+        const dismissedBatsman = inn.batsmen[dismissedIdx]
+        dismissedBatsman.isOut = true
+        dismissedBatsman.dismissal = actionDismissalType || ''
+        dismissedBatsman.fielder = actionFielder || null
+        dismissedBatsman.fielder2 = actionFielder2 || null
+        dismissedBatsman.isDirectHit = actionIsDirectHit || false
+        ballDisplay = 'W'
+
+        inn.fallOfWickets.push({
+          batsmanName: dismissedBatsman.name,
+          runs: inn.totalRuns,
+          wickets: inn.wickets,
+          overs: `0.${inn.ballsInCurrentOver + (isLegalDelivery ? 1 : 0)}`,
+          bowlerName: bowler.name,
+        })
+
+        // 1st wicket: bring in the 3rd batsman (reserve at index 2)
+        if (inn.wickets < SUPER_OVER_WICKETS && actionNewBatsman) {
+          // The new batsman is already in batsmen array at idx 2 (the reserve)
+          // Find them and swap into the position currently occupied by the dismissed batsman
+          const reserveIdx = inn.batsmen.findIndex(b => b.name === actionNewBatsman && !b.isOut)
+          if (reserveIdx >= 0) {
+            // Check which current position (after rotation) holds the dismissed batsman
+            if (inn.activeBatsmanIndex === dismissedIdx) {
+              inn.activeBatsmanIndex = reserveIdx
+            } else if (inn.nonStrikerIndex === dismissedIdx) {
+              inn.nonStrikerIndex = reserveIdx
+            }
+          }
+        }
+      }
+
+      // Track the ball in the current over
+      inn.currentOver.push(ballDisplay)
+
+      // Handle legal delivery
+      if (isLegalDelivery) {
+        inn.ballsInCurrentOver += 1
+        bowler.ballsInOver += 1
+
+        // Over completion at 6 legal balls
+        if (inn.ballsInCurrentOver === BALLS_PER_OVER) {
+          inn.oversCompleted += 1
+          bowler.overs += 1
+          inn.bowlerOversMap[bowler.name] = (inn.bowlerOversMap[bowler.name] || 0) + 1
+
+          // Check maiden
+          const maidenBroken = inn.currentOver.some(b => {
+            if (b === 'W' || b === '0') return false
+            if (b.startsWith('Wd') || b.startsWith('NB')) return false
+            if (b.startsWith('B') || b.startsWith('LB')) return false
+            const num = parseInt(b, 10)
+            return !isNaN(num) && num > 0
+          })
+          if (!maidenBroken) bowler.maidens += 1
+
+          inn.allOvers.push([...inn.currentOver])
+          inn.currentOver = []
+          inn.ballsInCurrentOver = 0
+          bowler.ballsInOver = 0
+          // No strike rotation at over end in super over (single over)
+        }
+      }
+
+      // Check end conditions
+      const inningsOver = inn.oversCompleted >= 1 || inn.wickets >= SUPER_OVER_WICKETS ||
+                          (!isFirst && inn.target > 0 && inn.totalRuns >= inn.target)
+
+      if (isFirst && inningsOver) {
+        so.phase = 'between-innings'
+      } else if (!isFirst && inningsOver) {
+        so.phase = 'result'
+      } else if (!isFirst && inn.target > 0 && inn.totalRuns >= inn.target) {
+        so.phase = 'result'
+      }
+
+      // Track free hit
+      so.lastBallWasNoBall = extraType === 'noBall'
+
+      // Build ball_data
       const soBallData = {
         display: ballDisplay,
         extraType: extraType || null,
         wicket: isWicket,
         runs: runsScored,
-        dismissalType: null,
+        dismissalType: actionDismissalType || null,
         isLegal: isLegalDelivery,
       }
       const newSOSnapshot = { sequence: nextSOSeq, snapshot_data: soSnapshotData, ball_data: soBallData }
@@ -701,8 +847,8 @@ export function matchReducer(state, action) {
     case 'SUPER_OVER_RESULT': {
       const so = state.superOver
       const team1IsFirst = so.battingFirst === state.team1
-      const firstRuns = so.innings1.runs
-      const secondRuns = so.innings2.runs
+      const firstRuns = so.innings1 ? so.innings1.totalRuns : 0
+      const secondRuns = so.innings2 ? so.innings2.totalRuns : 0
       let result = ''
 
       if (firstRuns > secondRuns) {
@@ -711,10 +857,10 @@ export function matchReducer(state, action) {
         result = `${so.battingSecond} won in Super Over (${secondRuns} vs ${firstRuns})`
       } else {
         // Tied super over — boundary count tiebreaker (cumulative across all innings + super over)
-        const soFours1 = team1IsFirst ? so.innings1.fours : so.innings2.fours
-        const soSixes1 = team1IsFirst ? so.innings1.sixes : so.innings2.sixes
-        const soFours2 = team1IsFirst ? so.innings2.fours : so.innings1.fours
-        const soSixes2 = team1IsFirst ? so.innings2.sixes : so.innings1.sixes
+        const soFours1 = team1IsFirst ? (so.innings1?.fours || 0) : (so.innings2?.fours || 0)
+        const soSixes1 = team1IsFirst ? (so.innings1?.sixes || 0) : (so.innings2?.sixes || 0)
+        const soFours2 = team1IsFirst ? (so.innings2?.fours || 0) : (so.innings1?.fours || 0)
+        const soSixes2 = team1IsFirst ? (so.innings2?.sixes || 0) : (so.innings1?.sixes || 0)
         const t1Boundaries = state.cumulativeBoundaries.team1.fours + state.cumulativeBoundaries.team1.sixes + soFours1 + soSixes1
         const t2Boundaries = state.cumulativeBoundaries.team2.fours + state.cumulativeBoundaries.team2.sixes + soFours2 + soSixes2
 
@@ -733,11 +879,6 @@ export function matchReducer(state, action) {
     }
 
     case 'RESTART_SUPER_OVER': {
-      // Another Super Over after boundary count tie
-      const createSOInnings = () => ({
-        runs: 0, wickets: 0, balls: 0, ballLog: [], fours: 0, sixes: 0,
-        extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
-      })
       return {
         ...state,
         superOver: {
@@ -748,12 +889,22 @@ export function matchReducer(state, action) {
           team2Bowler: '',
           battingFirst: state.superOver.battingFirst,
           battingSecond: state.superOver.battingSecond,
-          innings1: createSOInnings(),
-          innings2: { ...createSOInnings(), target: 0 },
+          innings1: null,
+          innings2: null,
+          lastBallWasNoBall: false,
         },
         superOverSnapshots: [],
         superOverSnapshotSeq: 0,
         result: '',
+      }
+    }
+
+    case 'SO_NEXT_INNINGS': {
+      // Transition from between-innings to select-openers-2
+      if (!state.superOver || state.superOver.phase !== 'between-innings') return state
+      return {
+        ...state,
+        superOver: { ...state.superOver, phase: 'select-openers-2' },
       }
     }
 
@@ -880,7 +1031,12 @@ function restoreInningsDefaults(state) {
       if (!inn) return inn
       return {
         ...inn,
-        ballLog: inn.ballLog || [],
+        currentOver: inn.currentOver || [],
+        allOvers: inn.allOvers || [],
+        batsmen: inn.batsmen || [],
+        bowlers: inn.bowlers || [],
+        fallOfWickets: inn.fallOfWickets || [],
+        bowlerOversMap: inn.bowlerOversMap || {},
         extras: inn.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0 },
       }
     }
