@@ -1,12 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMatch } from '../context/MatchContext'
+import { useCommentary } from '../context/CommentaryContext'
 
 export default function InningsBreak() {
+  const matchState = useMatch()
   const {
     phase, innings, currentInnings, cumulativeScores, team1, team2,
     inningsTimers, getOrdinal, dispatch, canUndo,
-  } = useMatch()
+  } = matchState
   const [isProcessing, setIsProcessing] = useState(false)
+  const commentary = useCommentary()
+  const reportRequestedRef = useRef(null)
+
+  // Request innings report when entering innings-break phase
+  useEffect(() => {
+    if ((phase === 'innings-break' || phase === 'follow-on-decision') && currentInnings != null) {
+      if (reportRequestedRef.current !== currentInnings) {
+        reportRequestedRef.current = currentInnings
+        commentary.requestInningsReport(matchState, currentInnings)
+      }
+    }
+  }, [phase, currentInnings])
 
   // Follow-on decision
   if (phase === 'follow-on-decision') {

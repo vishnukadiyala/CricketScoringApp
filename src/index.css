@@ -3358,6 +3358,11 @@ button:focus-visible {
   margin: 0;
 }
 
+.commentary-header-controls {
+  display: flex;
+  gap: 6px;
+}
+
 .commentary-error {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -3495,4 +3500,114 @@ button:focus-visible {
   border-radius: 50%;
   background: var(--primary);
   animation: commentary-pulse 1.2s infinite;
+}
+
+/* ===== WIN PROBABILITY BAR ===== */
+.win-probability {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+}
+
+.win-prob-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.win-prob-team {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.win-prob-team.batting {
+  color: var(--success);
+}
+
+.win-prob-team.bowling {
+  color: var(--danger);
+  text-align: right;
+}
+
+.win-prob-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.win-prob-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface-light);
+}
+
+.win-prob-fill {
+  height: 100%;
+  transition: width 0.6s ease;
+}
+
+.win-prob-fill.batting {
+  background: var(--success);
+}
+
+.win-prob-fill.bowling {
+  background: var(--danger);
+}
+
+.win-prob-reason {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* ===== ANALYSIS SECTIONS (Commentary Page) ===== */
+.analysis-section {
+  margin-top: 16px;
+}
+
+.analysis-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.analysis-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.analysis-card-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+
+.analysis-card-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.innings-report-card {
+  border-left: 3px solid var(--four);
+}
+
+.match-report-card {
+  border-left: 3px solid var(--six);
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(168, 85, 247, 0.05) 100%);
 }

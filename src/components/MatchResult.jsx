@@ -1,16 +1,28 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMatch } from '../context/MatchContext'
+import { useCommentary } from '../context/CommentaryContext'
 import { generateMatchReport, shareReport } from '../lib/matchReport'
 
 export default function MatchResult({ isTournament }) {
   const navigate = useNavigate()
   const [shareStatus, setShareStatus] = useState(null)
+  const matchState = useMatch()
   const {
     phase, result, innings, superOver, team1, team2,
     cumulativeScores, cumulativeBoundaries, getOrdinal, getNRR, dispatch,
     followOnEnforced,
-  } = useMatch()
+  } = matchState
+  const commentary = useCommentary()
+  const reportRequestedRef = useRef(false)
+
+  // Request AI match report when match ends
+  useEffect(() => {
+    if (phase === 'match-over' && !reportRequestedRef.current) {
+      reportRequestedRef.current = true
+      commentary.requestMatchReport(matchState)
+    }
+  }, [phase])
 
   if (phase !== 'match-over') return null
 

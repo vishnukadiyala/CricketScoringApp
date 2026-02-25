@@ -282,3 +282,145 @@ function sumOverRuns(balls) {
   }
   return total
 }
+
+// ── Analysis context builders ────────────────────────────────
+
+/**
+ * Build context for the over that just ended.
+ * Includes ball-by-ball, bowler stats, and batsmen who batted in the over.
+ */
+export function buildOverSummaryContext(matchState) {
+  if (!matchState) return ''
+  const inn = matchState.innings?.[matchState.currentInnings]
+  if (!inn) return ''
+
+  const lines = []
+  const inningsNum = matchState.currentInnings + 1
+  lines.push(`${getOrdinal(inningsNum)} Innings: ${inn.battingTeam} vs ${inn.bowlingTeam}`)
+  lines.push(`Score after this over: ${inn.totalRuns}/${inn.wickets} (${inn.oversCompleted} overs)`)
+
+  // The over that just ended is the last in allOvers
+  const lastOver = inn.allOvers?.[inn.allOvers.length - 1]
+  if (lastOver) {
+    const overRuns = sumOverRuns(lastOver)
+    lines.push(`Over ${inn.oversCompleted}: [${lastOver.join(', ')}] = ${overRuns} runs`)
+  }
+
+  // Bowler for this over
+  const bowler = inn.bowlers?.[inn.currentBowlerIndex]
+  if (bowler) {
+    const econ = (bowler.overs + bowler.ballsInOver / 6) > 0
+      ? (bowler.runs / (bowler.overs + bowler.ballsInOver / 6)).toFixed(1) : '0.0'
+    lines.push(`Bowler: ${bowler.name} — ${bowler.wickets}/${bowler.runs} (${bowler.overs}.${bowler.ballsInOver} ov, econ ${econ})`)
+  }
+
+  // Current batsmen
+  const striker = inn.batsmen?.[inn.activeBatsmanIndex]
+  const nonStriker = inn.batsmen?.[inn.nonStrikerIndex]
+  if (striker) lines.push(`Striker: ${striker.name} — ${striker.runs}(${striker.balls}) [${striker.fours}x4, ${striker.sixes}x6]`)
+  if (nonStriker) lines.push(`Non-striker: ${nonStriker.name} — ${nonStriker.runs}(${nonStriker.balls})`)
+
+  // Run rate
+  const totalBalls = inn.oversCompleted * BALLS_PER_OVER
+  if (totalBalls > 0) {
+    lines.push(`Run rate: ${((inn.totalRuns / totalBalls) * BALLS_PER_OVER).toFixed(2)}`)
+  }
+
+  // Target info
+  if (matchState.target) {
+    const remaining = matchState.target - inn.totalRuns
+    const ballsLeft = (matchState.oversPerInnings * BALLS_PER_OVER) - totalBalls
+    if (remaining > 0 && ballsLeft > 0) {
+      lines.push(`Target: ${matchState.target} — Need ${remaining} from ${ballsLeft} balls (RRR: ${((remaining / ballsLeft) * BALLS_PER_OVER).toFixed(2)})`)
+    }
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Build comprehensive innings context for innings/match reports.
+ * Includes all batsmen, all bowlers, FOW, extras, over-by-over progression.
+ */
+export function buildFullInningsContext(matchState, inningsIndex) {
+  if (!matchState) return ''
+  const inn = matchState.innings?.[inningsIndex]
+  if (!inn) return ''
+
+  const lines = []
+  const inningsNum = inningsIndex + 1
+  lines.push(`=== ${getOrdinal(inningsNum)} Innings: ${inn.battingTeam} vs ${inn.bowlingTeam} ===`)
+  lines.push(`Total: ${inn.totalRuns}/${inn.wickets} (${inn.oversCompleted}.${inn.ballsInCurrentOver} overs)`)
+  lines.push(`Fours: ${inn.fours}, Sixes: ${inn.sixes}`)
+
+  // All batsmen
+  lines.push('\nBatting:')
+  for (const b of (inn.batsmen || [])) {
+    const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(0) : '0'
+    const status = b.isOut ? `out (${b.dismissal})` : 'not out'
+    lines.push(`  ${b.name}: ${b.runs}(${b.balls}) [${b.fours}x4, ${b.sixes}x6] SR ${sr} — ${status}`)
+  }
+
+  // All bowlers
+  lines.push('\nBowling:')
+  for (const b of (inn.bowlers || [])) {
+    const econ = (b.overs + b.ballsInOver / 6) > 0
+      ? (b.runs / (b.overs + b.ballsInOver / 6)).toFixed(1) : '0.0'
+    lines.push(`  ${b.name}: ${b.wickets}/${b.runs} (${b.overs}.${b.ballsInOver} ov) econ ${econ}, maidens ${b.maidens}`)
+  }
+
+  // Fall of wickets
+  if (inn.fallOfWickets?.length > 0) {
+    lines.push('\nFall of wickets:')
+    for (const f of inn.fallOfWickets) {
+      lines.push(`  ${f.wickets}/${f.runs} — ${f.batsmanName} (${f.overs} ov, bowler: ${f.bowlerName})`)
+    }
+  }
+
+  // Extras
+  if (inn.extras) {
+    const e = inn.extras
+    const total = (e.wides || 0) + (e.noBalls || 0) + (e.byes || 0) + (e.legByes || 0)
+    if (total > 0) {
+      lines.push(`\nExtras: ${total} (W ${e.wides}, NB ${e.noBalls}, B ${e.byes}, LB ${e.legByes})`)
+    }
+  }
+
+  // Over-by-over scoring
+  if (inn.allOvers?.length > 0) {
+    lines.push('\nOver-by-over:')
+    inn.allOvers.forEach((over, i) => {
+      lines.push(`  Over ${i + 1}: [${over.join(', ')}] = ${sumOverRuns(over)} runs`)
+    })
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Build context for full match report (all innings).
+ */
+export function buildMatchReportContext(matchState) {
+  if (!matchState) return ''
+
+  const lines = []
+  lines.push(`Match: ${matchState.team1} vs ${matchState.team2}`)
+  lines.push(`Format: ${matchState.oversPerInnings} overs per innings`)
+  if (matchState.result) lines.push(`Result: ${matchState.result}`)
+  lines.push('')
+
+  // Include all played innings
+  for (let i = 0; i <= matchState.currentInnings; i++) {
+    if (matchState.innings[i]) {
+      lines.push(buildFullInningsContext(matchState, i))
+      lines.push('')
+    }
+  }
+
+  // Cumulative scores if applicable
+  if (matchState.cumulativeScores) {
+    lines.push(`Cumulative: ${matchState.team1} ${matchState.cumulativeScores.team1} — ${matchState.team2} ${matchState.cumulativeScores.team2}`)
+  }
+
+  return lines.join('\n')
+}

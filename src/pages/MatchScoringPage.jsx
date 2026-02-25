@@ -128,7 +128,7 @@ export default function MatchScoringPage() {
 }
 
 function CommentaryToggle({ matchId }) {
-  const { isEnabled, isConnected, isGenerating, toggleEnabled } = useCommentary()
+  const { isEnabled, isAudioEnabled, isConnected, isGenerating, toggleEnabled, toggleAudio } = useCommentary()
 
   return (
     <div className="commentary-toggle-area">
@@ -141,6 +141,15 @@ function CommentaryToggle({ matchId }) {
         {isEnabled && !isConnected && <span className="commentary-toggle-dot disconnected" />}
         {isEnabled && isConnected && <span className="commentary-toggle-dot connected" />}
       </button>
+      {isEnabled && (
+        <button
+          className={`commentary-toggle ${isAudioEnabled ? 'active' : ''}`}
+          onClick={toggleAudio}
+          title={isAudioEnabled ? 'Mute audio commentary' : 'Enable audio commentary'}
+        >
+          <span className="commentary-toggle-icon">{isAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}</span>
+        </button>
+      )}
       {isEnabled && (
         <Link to={`/match/${matchId}/commentary`} className="commentary-view-link">
           View Commentary

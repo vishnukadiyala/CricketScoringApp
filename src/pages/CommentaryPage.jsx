@@ -2,10 +2,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useRef, useEffect, useState } from 'react'
 import { CommentaryProvider, useCommentary } from '../context/CommentaryContext'
 import { getBallClass } from '../lib/ballDisplay'
-import { playLPCMAudio } from '../lib/audioPlayback'
+import { playMP3Audio } from '../lib/audioPlayback'
+import WinProbability from '../components/WinProbability'
 
 function CommentaryLog() {
-  const { entries, isEnabled, isGenerating, error, toggleEnabled, clearError } = useCommentary()
+  const {
+    entries, isEnabled, isAudioEnabled, isGenerating, error,
+    toggleEnabled, toggleAudio, clearError,
+    overSummaries, inningsReports, matchReport, winProbability,
+  } = useCommentary()
   const scrollRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
 
@@ -20,7 +25,7 @@ function CommentaryLog() {
     if (!entry.audioBase64 || playingId) return
     setPlayingId(entry.id)
     try {
-      await playLPCMAudio(entry.audioBase64)
+      await playMP3Audio(entry.audioBase64)
     } catch { /* ignore playback errors */ }
     setPlayingId(null)
   }
@@ -37,12 +42,21 @@ function CommentaryLog() {
     <div className="commentary-page">
       <div className="commentary-header">
         <h2>AI Commentary</h2>
-        <button
-          className={`btn btn-sm ${isEnabled ? 'btn-primary' : 'btn-outline'}`}
-          onClick={toggleEnabled}
-        >
-          {isEnabled ? 'ON' : 'OFF'}
-        </button>
+        <div className="commentary-header-controls">
+          <button
+            className={`btn btn-sm ${isAudioEnabled ? 'btn-primary' : 'btn-outline'}`}
+            onClick={toggleAudio}
+            title={isAudioEnabled ? 'Mute audio' : 'Enable audio'}
+          >
+            {isAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}
+          </button>
+          <button
+            className={`btn btn-sm ${isEnabled ? 'btn-primary' : 'btn-outline'}`}
+            onClick={toggleEnabled}
+          >
+            {isEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -50,6 +64,8 @@ function CommentaryLog() {
           {error} <span className="dismiss">(tap to dismiss)</span>
         </div>
       )}
+
+      <WinProbability />
 
       {entries.length === 0 && (
         <div className="commentary-empty">
@@ -98,10 +114,50 @@ function CommentaryLog() {
         {isGenerating && (
           <div className="commentary-generating">
             <span className="commentary-pulse" />
-            Listening & generating...
+            Generating commentary...
           </div>
         )}
       </div>
+
+      {/* Over Summaries */}
+      {overSummaries.length > 0 && (
+        <div className="analysis-section">
+          <h3 className="analysis-section-title">Over Summaries</h3>
+          {overSummaries.map((os, i) => (
+            <div key={i} className="analysis-card">
+              <div className="analysis-card-header">
+                Over {os.overNumber} — Innings {(os.inningsIndex ?? 0) + 1}
+              </div>
+              <div className="analysis-card-text">{os.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Innings Reports */}
+      {inningsReports.length > 0 && (
+        <div className="analysis-section">
+          <h3 className="analysis-section-title">Innings Reports</h3>
+          {inningsReports.map((ir, i) => (
+            <div key={i} className="analysis-card innings-report-card">
+              <div className="analysis-card-header">
+                Innings {(ir.inningsIndex ?? 0) + 1} Report
+              </div>
+              <div className="analysis-card-text">{ir.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Match Report */}
+      {matchReport && (
+        <div className="analysis-section">
+          <h3 className="analysis-section-title">Match Report</h3>
+          <div className="analysis-card match-report-card">
+            <div className="analysis-card-text">{matchReport}</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
