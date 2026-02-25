@@ -144,6 +144,7 @@ export function CommentaryProvider({ matchId, children }) {
           dispatch({
             type: 'LOAD_ANALYSIS',
             data: {
+              winProbability: data.winProbability || null,
               overSummaries: data.overSummaries || [],
               inningsReports: data.inningsReports || [],
               matchReport: data.matchReport || null,
@@ -162,13 +163,14 @@ export function CommentaryProvider({ matchId, children }) {
         entries: state.entries
           .filter((e) => e.status === 'done')
           .map(({ audioBase64, ...rest }) => rest),
+        winProbability: state.winProbability,
         overSummaries: state.overSummaries,
         inningsReports: state.inningsReports,
         matchReport: state.matchReport,
       }
       localStorage.setItem(STORAGE_PREFIX + matchId, JSON.stringify(toSave))
     } catch { /* storage full */ }
-  }, [matchId, state.entries, state.overSummaries, state.inningsReports, state.matchReport])
+  }, [matchId, state.entries, state.winProbability, state.overSummaries, state.inningsReports, state.matchReport])
 
   // Socket.IO connection lifecycle
   useEffect(() => {
