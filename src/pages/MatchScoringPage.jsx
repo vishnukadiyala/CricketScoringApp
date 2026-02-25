@@ -1,7 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useTournament } from '../context/TournamentContext'
 import { MatchProvider } from '../context/MatchContext'
-import { CommentaryProvider, useCommentary } from '../context/CommentaryContext'
+import { CommentaryProvider } from '../context/CommentaryContext'
 import { extractTeamSummaries } from '../lib/standings'
 import { getActivePlayerNames } from '../lib/squadUtils'
 import { useEffect, useRef } from 'react'
@@ -128,33 +128,11 @@ export default function MatchScoringPage() {
 }
 
 function CommentaryToggle({ matchId }) {
-  const { isEnabled, isAudioEnabled, isConnected, isGenerating, toggleEnabled, toggleAudio } = useCommentary()
-
   return (
     <div className="commentary-toggle-area">
-      <button
-        className={`commentary-toggle ${isEnabled ? 'active' : ''} ${isGenerating ? 'generating' : ''}`}
-        onClick={toggleEnabled}
-        title={isEnabled ? 'Disable AI Commentary' : 'Enable AI Commentary'}
-      >
-        <span className="commentary-toggle-icon">{'\uD83C\uDFA4'}</span>
-        {isEnabled && !isConnected && <span className="commentary-toggle-dot disconnected" />}
-        {isEnabled && isConnected && <span className="commentary-toggle-dot connected" />}
-      </button>
-      {isEnabled && (
-        <button
-          className={`commentary-toggle ${isAudioEnabled ? 'active' : ''}`}
-          onClick={toggleAudio}
-          title={isAudioEnabled ? 'Mute audio commentary' : 'Enable audio commentary'}
-        >
-          <span className="commentary-toggle-icon">{isAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}</span>
-        </button>
-      )}
-      {isEnabled && (
-        <Link to={`/match/${matchId}/commentary`} className="commentary-view-link">
-          View Commentary
-        </Link>
-      )}
+      <Link to={`/match/${matchId}/commentary`} className="commentary-view-link">
+        View Commentary
+      </Link>
     </div>
   )
 }

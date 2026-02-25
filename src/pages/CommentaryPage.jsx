@@ -42,21 +42,6 @@ function CommentaryLog() {
     <div className="commentary-page">
       <div className="commentary-header">
         <h2>AI Commentary</h2>
-        <div className="commentary-header-controls">
-          <button
-            className={`btn btn-sm ${isAudioEnabled ? 'btn-primary' : 'btn-outline'}`}
-            onClick={toggleAudio}
-            title={isAudioEnabled ? 'Mute audio' : 'Enable audio'}
-          >
-            {isAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}
-          </button>
-          <button
-            className={`btn btn-sm ${isEnabled ? 'btn-primary' : 'btn-outline'}`}
-            onClick={toggleEnabled}
-          >
-            {isEnabled ? 'ON' : 'OFF'}
-          </button>
-        </div>
       </div>
 
       {error && (
