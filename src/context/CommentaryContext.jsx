@@ -25,6 +25,8 @@ const initialState = {
   overSummaries: [],      // [{overNumber, inningsIndex, text}]
   inningsReports: [],     // [{inningsIndex, text}]
   matchReport: null,      // string
+  // Live score (for viewer page)
+  liveScore: null,        // {battingTeam, bowlingTeam, runs, wickets, overs, balls, striker, nonStriker, bowler, target, inningsNum}
 }
 
 function commentaryReducer(state, action) {
@@ -88,6 +90,8 @@ function commentaryReducer(state, action) {
       return { ...state, matchReport: action.text }
     case 'LOAD_ANALYSIS':
       return { ...state, ...action.data }
+    case 'SET_LIVE_SCORE':
+      return { ...state, liveScore: action.data }
 
     default:
       return state
@@ -139,18 +143,25 @@ export function CommentaryProvider({ matchId, children }) {
           // Legacy format: just entries
           dispatch({ type: 'LOAD_ENTRIES', entries: data.map((e) => ({ ...e, audioBase64: '' })) })
         } else {
-          // New format: {entries, overSummaries, inningsReports, matchReport}
           dispatch({ type: 'LOAD_ENTRIES', entries: (data.entries || []).map((e) => ({ ...e, audioBase64: '' })) })
           dispatch({
             type: 'LOAD_ANALYSIS',
             data: {
-              winProbability: data.winProbability || null,
               overSummaries: data.overSummaries || [],
               inningsReports: data.inningsReports || [],
               matchReport: data.matchReport || null,
             },
           })
         }
+      }
+      // Win probability + live score stored separately for reliable cross-tab loading
+      const savedProb = localStorage.getItem(STORAGE_PREFIX + matchId + '_winprob')
+      if (savedProb) {
+        dispatch({ type: 'SET_WIN_PROBABILITY', data: JSON.parse(savedProb) })
+      }
+      const savedScore = localStorage.getItem(STORAGE_PREFIX + matchId + '_score')
+      if (savedScore) {
+        dispatch({ type: 'SET_LIVE_SCORE', data: JSON.parse(savedScore) })
       }
     } catch { /* ignore */ }
   }, [matchId])
@@ -163,14 +174,28 @@ export function CommentaryProvider({ matchId, children }) {
         entries: state.entries
           .filter((e) => e.status === 'done')
           .map(({ audioBase64, ...rest }) => rest),
-        winProbability: state.winProbability,
         overSummaries: state.overSummaries,
         inningsReports: state.inningsReports,
         matchReport: state.matchReport,
       }
       localStorage.setItem(STORAGE_PREFIX + matchId, JSON.stringify(toSave))
     } catch { /* storage full */ }
-  }, [matchId, state.entries, state.winProbability, state.overSummaries, state.inningsReports, state.matchReport])
+  }, [matchId, state.entries, state.overSummaries, state.inningsReports, state.matchReport])
+
+  // Persist win probability + live score independently (not gated by entries)
+  useEffect(() => {
+    if (!matchId || !state.winProbability) return
+    try {
+      localStorage.setItem(STORAGE_PREFIX + matchId + '_winprob', JSON.stringify(state.winProbability))
+    } catch { /* storage full */ }
+  }, [matchId, state.winProbability])
+
+  useEffect(() => {
+    if (!matchId || !state.liveScore) return
+    try {
+      localStorage.setItem(STORAGE_PREFIX + matchId + '_score', JSON.stringify(state.liveScore))
+    } catch { /* storage full */ }
+  }, [matchId, state.liveScore])
 
   // Socket.IO connection lifecycle
   useEffect(() => {
@@ -235,6 +260,11 @@ export function CommentaryProvider({ matchId, children }) {
       dispatch({ type: 'SET_FULL_TEXT', id: data.entryId, text: data.fullText })
     })
 
+    // Live score updates (for viewer tabs)
+    socket.on('score-update', (data) => {
+      dispatch({ type: 'SET_LIVE_SCORE', data })
+    })
+
     // Analysis results
     socket.on('analysis-result', (data) => {
       dispatch({ type: 'SET_WIN_PROBABILITY', data })
@@ -279,11 +309,14 @@ export function CommentaryProvider({ matchId, children }) {
     // Derive ball display from the action (state is stale at this point)
     const ballDisplay = getBallDisplayFromAction(ballAction)
 
+    // ballsInCurrentOver is 0-indexed (pre-dispatch), add 1 for display
+    const displayBallNumber = inn.ballsInCurrentOver + 1
+
     dispatch({
       type: 'ADD_ENTRY', id: entryId,
       inningsIndex: matchState.currentInnings,
       overNumber: inn.oversCompleted,
-      ballNumber: inn.ballsInCurrentOver,
+      ballNumber: displayBallNumber,
       ballDisplay,
     })
     activeRequestRef.current = entryId
@@ -295,13 +328,33 @@ export function CommentaryProvider({ matchId, children }) {
       'THIS BALL: ' + describeBallEvent(ballAction),
     ].join('\n')
 
+    // Broadcast live score snapshot to viewer tabs
+    const striker = inn.batsmen?.[inn.activeBatsmanIndex]
+    const nonStriker = inn.batsmen?.[inn.nonStrikerIndex]
+    const bowler = inn.bowlers?.[inn.currentBowlerIndex]
+    const scoreSnapshot = {
+      battingTeam: inn.battingTeam,
+      bowlingTeam: inn.bowlingTeam,
+      runs: inn.totalRuns,
+      wickets: inn.wickets,
+      overs: inn.oversCompleted,
+      balls: inn.ballsInCurrentOver,
+      striker: striker ? { name: striker.name, runs: striker.runs, balls: striker.balls } : null,
+      nonStriker: nonStriker ? { name: nonStriker.name, runs: nonStriker.runs, balls: nonStriker.balls } : null,
+      bowler: bowler ? { name: bowler.name, overs: `${bowler.overs}.${bowler.ballsInOver}`, runs: bowler.runs, wickets: bowler.wickets } : null,
+      target: inn.target || null,
+      inningsNum: matchState.currentInnings + 1,
+    }
+    dispatch({ type: 'SET_LIVE_SCORE', data: scoreSnapshot })
+    socketRef.current.emit('score-update', scoreSnapshot)
+
     // Fire commentary request (include meta for broadcast to viewer tabs)
     socketRef.current.emit('commentary-request', {
       contextText, entryId,
       meta: {
         inningsIndex: matchState.currentInnings,
         overNumber: inn.oversCompleted,
-        ballNumber: inn.ballsInCurrentOver,
+        ballNumber: displayBallNumber,
         ballDisplay,
       },
     })
@@ -373,7 +426,7 @@ const NOOP_ASYNC = async () => {}
 const fallback = {
   entries: [], isEnabled: false, isAudioEnabled: false, isConnected: false,
   isGenerating: false, error: null,
-  winProbability: null, overSummaries: [], inningsReports: [], matchReport: null,
+  winProbability: null, overSummaries: [], inningsReports: [], matchReport: null, liveScore: null,
   requestCommentary: NOOP_ASYNC, requestInningsReport: NOOP, requestMatchReport: NOOP,
   toggleEnabled: NOOP, toggleAudio: NOOP, clearError: NOOP,
 }

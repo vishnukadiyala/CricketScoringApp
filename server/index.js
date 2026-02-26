@@ -143,6 +143,13 @@ io.on('connection', (socket) => {
     console.log(`[${socket.id}] Joined room match:${matchId}`)
   })
 
+  // Relay live score to all viewers in the room
+  socket.on('score-update', (data) => {
+    if (socket.matchRoom) {
+      socket.to(socket.matchRoom).emit('score-update', data)
+    }
+  })
+
   socket.on('commentary-request', async (data) => {
     const { contextText, entryId } = data
     if (!contextText) {

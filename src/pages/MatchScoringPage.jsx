@@ -97,7 +97,7 @@ export default function MatchScoringPage() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Cricket Scorer — NCC Ed. 5</h1>
+        <h1>Norman Cricket Championship Edition 5</h1>
       </header>
       <main className="app-main">
         <MatchProvider

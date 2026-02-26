@@ -3,7 +3,23 @@ import { useRef, useEffect, useState } from 'react'
 import { CommentaryProvider, useCommentary } from '../context/CommentaryContext'
 import { getBallClass } from '../lib/ballDisplay'
 import { playMP3Audio } from '../lib/audioPlayback'
-import WinProbability from '../components/WinProbability'
+import LiveScoreBanner from '../components/WinProbability'
+
+function CollapsibleSection({ title, count, defaultOpen = false, accent, children }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen)
+  return (
+    <div className={`analysis-section ${isOpen ? 'open' : ''}`}>
+      <button className="analysis-section-toggle" onClick={() => setIsOpen(!isOpen)}>
+        <span className="analysis-section-title">
+          {title}
+          {count != null && <span className="analysis-section-count">{count}</span>}
+        </span>
+        <span className={`analysis-section-chevron ${isOpen ? 'open' : ''}`}>{'\u25B6'}</span>
+      </button>
+      {isOpen && <div className="analysis-section-content">{children}</div>}
+    </div>
+  )
+}
 
 function CommentaryLog() {
   const {
@@ -50,7 +66,7 @@ function CommentaryLog() {
         </div>
       )}
 
-      <WinProbability />
+      <LiveScoreBanner />
 
       {entries.length === 0 && (
         <div className="commentary-empty">
@@ -106,8 +122,7 @@ function CommentaryLog() {
 
       {/* Over Summaries */}
       {overSummaries.length > 0 && (
-        <div className="analysis-section">
-          <h3 className="analysis-section-title">Over Summaries</h3>
+        <CollapsibleSection title="Over Summaries" count={overSummaries.length}>
           {overSummaries.map((os, i) => (
             <div key={i} className="analysis-card">
               <div className="analysis-card-header">
@@ -116,13 +131,12 @@ function CommentaryLog() {
               <div className="analysis-card-text">{os.text}</div>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Innings Reports */}
       {inningsReports.length > 0 && (
-        <div className="analysis-section">
-          <h3 className="analysis-section-title">Innings Reports</h3>
+        <CollapsibleSection title="Innings Reports" count={inningsReports.length}>
           {inningsReports.map((ir, i) => (
             <div key={i} className="analysis-card innings-report-card">
               <div className="analysis-card-header">
@@ -131,17 +145,16 @@ function CommentaryLog() {
               <div className="analysis-card-text">{ir.text}</div>
             </div>
           ))}
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Match Report */}
       {matchReport && (
-        <div className="analysis-section">
-          <h3 className="analysis-section-title">Match Report</h3>
+        <CollapsibleSection title="Match Report" defaultOpen>
           <div className="analysis-card match-report-card">
             <div className="analysis-card-text">{matchReport}</div>
           </div>
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   )
@@ -154,7 +167,7 @@ export default function CommentaryPage() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Cricket Scorer — NCC Ed. 5</h1>
+        <h1>Norman Cricket Championship Edition 5</h1>
       </header>
       <main className="app-main">
         <CommentaryProvider matchId={id}>
