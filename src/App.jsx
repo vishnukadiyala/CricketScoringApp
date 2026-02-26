@@ -24,7 +24,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/match/:id" element={<ProtectedRoute><MatchPage /></ProtectedRoute>} />
-          <Route path="/match/:id/score" element={<ProtectedRoute requiredRole="organizer"><MatchScoringPage /></ProtectedRoute>} />
+          <Route path="/match/:id/score" element={<ProtectedRoute requiredRole="scorer"><MatchScoringPage /></ProtectedRoute>} />
           <Route path="/teams" element={<ProtectedRoute><TeamsPage /></ProtectedRoute>} />
           <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="organizer"><AdminPage /></ProtectedRoute>} />

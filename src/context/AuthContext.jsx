@@ -47,6 +47,7 @@ export function AuthProvider({ children }) {
     loading,
     isOwner: role === 'owner',
     isOrganizer: role === 'organizer' || role === 'owner',
+    isScorer: role === 'scorer' || role === 'organizer' || role === 'owner',
     isPlayer: role === 'player',
     isAuthenticated: Boolean(user),
     isAuthEnabled: isFirebaseConfigured,

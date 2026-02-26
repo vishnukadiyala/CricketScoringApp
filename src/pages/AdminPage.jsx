@@ -666,10 +666,11 @@ export default function AdminPage() {
                           }}
                         >
                           <option value="player">player</option>
+                          <option value="scorer">scorer</option>
                           <option value="organizer">organizer</option>
                         </select>
                       ) : (
-                        <span className={`status-badge ${isUserOwner ? 'completed' : u.role === 'organizer' ? 'live' : 'upcoming'}`}>
+                        <span className={`status-badge ${isUserOwner ? 'completed' : u.role === 'organizer' ? 'live' : u.role === 'scorer' ? 'live' : 'upcoming'}`}>
                           {u.role}
                         </span>
                       )}
